@@ -324,7 +324,10 @@ test('TTY launchers distinguish headless commands from prompts and option values
   const cases: { name: string; program?: string; hint?: string; cli?: string; args?: string[]; flag?: string;
     rewrite?: boolean; headless?: boolean; invalidKey?: boolean; stdin?: boolean; stdout?: boolean }[] = [
     { name: 'Orca Kitty', rewrite: true },
-    { name: 'Orca without hint', hint: undefined },
+    { name: 'Orca without hint', hint: undefined, rewrite: true },
+    { name: 'Orca without hint and failed attendance', hint: undefined, rewrite: true, invalidKey: true },
+    { name: 'Orca explicitly disabled', hint: 'none' },
+    { name: 'Orca explicitly empty hint', hint: '' },
     { name: 'Orca Sixel', hint: 'sixel' },
     { name: 'unknown terminal', program: 'OtherTerminal' },
     { name: 'absent terminal program', program: undefined },
@@ -402,7 +405,7 @@ test('TTY launchers distinguish headless commands from prompts and option values
     assert.match(result.stderr, /native stderr/);
     const lines = result.stdout.trim().split(/\r?\n/);
     assert.deepEqual(JSON.parse(lines[0]), { args, term: example.rewrite ? 'xterm-kitty' : env.TERM, input: 'stdin preserved\n',
-      ...(example.rewrite || program ? { program: example.rewrite ? 'kitty' : program } : {}), ...(hint ? { hint } : {}) });
+      ...(example.rewrite || program ? { program: example.rewrite ? 'kitty' : program } : {}), ...(hint !== undefined ? { hint } : {}) });
     const interactive = example.stdin !== false && example.stdout !== false && !example.flag && !example.headless;
     const warpFilter = interactive && program === 'WarpTerminal' && ['darwin', 'linux'].includes(process.platform) && existsSync('/usr/bin/script');
     const parent = JSON.parse(lines.at(-1));

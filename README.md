@@ -180,9 +180,9 @@ codex resume <세션-ID>          # 기존 대화 이어서 실행
 
 캐릭터 아래에는 **밥그릇(포만감)·하트(기분)·번개(에너지)·물방울(청결)** 순서로 막대와 0~100 수치가 표시됩니다. 상태판도 펫 이미지의 일부라 `/statusline` 설정 없이 보입니다. 30 미만인 수치는 붉게 표시합니다.
 
-Codex 0.161–0.162는 Warp와 Orca의 이미지 지원을 자동 인식하지 못합니다. 대화형 Codex를 Warp에서 실행하거나 **`TERM_PROGRAM=Orca`·`ORCA_IMAGE_PROTOCOL=kitty`가 함께 설정된 Orca**에서 실행하면, 자식 Codex에만 `TERM=xterm-kitty`, `TERM_PROGRAM=kitty`를 전달합니다. 출석 요청이 실패해도 적용하며 전역 셸 환경과 원본 CLI는 바꾸지 않습니다. Claude·비대화형 호출·도움말·버전 조회에는 적용하지 않습니다. 다른 터미널은 Codex가 지원하는 Kitty/Sixel 이미지 기능이 필요하며, tmux/Zellij 안에서는 내장 펫을 표시하지 못합니다.
+Codex 0.161–0.162는 Warp와 Orca의 이미지 지원을 자동 인식하지 못합니다. 대화형 Codex를 Warp 또는 **`TERM_PROGRAM=Orca`인 Orca**에서 실행하면, 자식 Codex에만 `TERM=xterm-kitty`, `TERM_PROGRAM=kitty`를 전달합니다. Orca는 `ORCA_IMAGE_PROTOCOL=kitty`이거나 힌트가 없을 때 적용하므로, 일반 SSH 셸에서 설치한 뒤 구버전 Orca 서버로 접속해도 별도 설정이 필요하지 않습니다. 출석 요청이 실패해도 적용하며 전역 셸 환경과 원본 CLI는 바꾸지 않습니다. Claude·비대화형 호출·도움말·버전 조회에는 적용하지 않습니다. 다른 터미널은 Codex가 지원하는 Kitty/Sixel 이미지 기능이 필요하며, tmux/Zellij 안에서는 내장 펫을 표시하지 못합니다.
 
-Orca 앱은 **Inline Images가 켜져 있고 Kitty 이미지를 지원**해야 합니다. 구버전 Orca 서버가 이미지 힌트를 전달하지 않으면, 지원을 확인한 Orca 셸에서 `ORCA_IMAGE_PROTOCOL=kitty tokenpet setup`을 한 번 실행해 힌트를 실행기에 저장할 수 있습니다. 저장한 힌트는 CLI 업데이트 후 자동 연결 복구에도 유지됩니다. 힌트 없이 setup을 다시 실행하면 저장한 힌트를 제거합니다. 변경은 새 Codex 세션부터 적용하며, `TERM_PROGRAM_VERSION`만으로 PC의 Orca 앱 버전을 판단하지 않습니다.
+Orca 앱은 **Inline Images가 켜져 있고 Kitty 이미지를 지원**해야 합니다. `ORCA_IMAGE_PROTOCOL=none codex`로 이미지 호환 처리를 끌 수 있으며, 빈 값이나 `sixel`처럼 명시한 다른 값도 유지합니다. 현재 터미널의 힌트가 설치 때 저장한 값보다 우선합니다. `ORCA_IMAGE_PROTOCOL=kitty tokenpet setup`으로 저장한 값은 힌트 없이 재설치·setup·connect를 실행하거나 CLI 업데이트 후 자동 연결을 복구해도 유지합니다. 기본값을 바꾸려면 `ORCA_IMAGE_PROTOCOL=none tokenpet setup`처럼 값을 명시하세요. 변경은 새 Codex 세션부터 적용하며, `TERM_PROGRAM_VERSION`만으로 PC의 Orca 앱 버전을 판단하지 않습니다.
 
 Warp(macOS·Linux)에서는 Codex 세션마다 펫 이미지 번호를 분리합니다. 여러 탭의 Codex가 같은 번호의 이미지를 덮어쓰거나 지우면서 캐릭터와 상태창 전체가 깜빡이는 문제를 방지합니다. 애니메이션·돌봄·펫 교체 갱신은 유지하며, 시스템의 `/usr/bin/script`로 입력·창 크기 변경·종료 키를 전달합니다. 적용하려면 실행 중인 Codex를 한 번 재시작해야 합니다.
 

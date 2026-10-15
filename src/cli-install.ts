@@ -64,7 +64,10 @@ function atomicWrite(path: string, content: string, mode: number) {
 }
 
 function script(cli: string, executable: string, registry: Registry) {
-  const prefix = Object.entries(registry.env).map(([key, value]) => `${key}=${shellQuote(value)} `).join('');
+  // The current terminal's hint takes precedence, including an explicit empty value.
+  const prefix = Object.entries(registry.env).map(([key, value]) => key === 'ORCA_IMAGE_PROTOCOL'
+    ? `${key}=\${ORCA_IMAGE_PROTOCOL-${shellQuote(value)}} `
+    : `${key}=${shellQuote(value)} `).join('');
   return `${header}${JSON.stringify(executable)}\nif [ -x ${shellQuote(registry.node)} ] && [ -f ${shellQuote(registry.bin)} ]; then\n  ${prefix}TOKENPET_ORIGINAL_${cli.toUpperCase()}=${shellQuote(executable)} exec ${shellQuote(registry.node)} ${shellQuote(registry.bin)} launch ${cli} "$@"\nfi\nexec ${shellQuote(executable)} "$@"\n# <<< tokenpet <<<\n`;
 }
 
@@ -132,7 +135,9 @@ export function installLaunchers({ config, bin, backupDir, env = process.env }: 
   const file = registryPath(config);
   const previous = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null;
   const registry: Registry = { bin, node: process.execPath, env: { TOKENPET_DATA_DIR: config.dataDir }, entries: previous?.entries || [] };
-  for (const key of ['TOKENPET_SERVER', 'TOKENPET_PORT', 'NODE_EXTRA_CA_CERTS', 'ORCA_IMAGE_PROTOCOL']) if (env[key]) registry.env[key] = env[key]!;
+  for (const key of ['TOKENPET_SERVER', 'TOKENPET_PORT', 'NODE_EXTRA_CA_CERTS']) if (env[key]) registry.env[key] = env[key]!;
+  const imageHint = env.ORCA_IMAGE_PROTOCOL ?? previous?.env?.ORCA_IMAGE_PROTOCOL;
+  if (imageHint !== undefined) registry.env.ORCA_IMAGE_PROTOCOL = imageHint;
   const shimDir = join(config.dataDir, 'bin');
   const paths = ['codex', 'claude'].flatMap(cli => entries(cli, shimDir, env.PATH || '').map(path => ({ cli, path })));
   for (const { cli, path } of registry.entries) if (existsSync(path) && !paths.some(entry => entry.path === path)) paths.push({ cli, path });
