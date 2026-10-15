@@ -1,11 +1,13 @@
-import type { UsageRecord } from '../dist/src/types.js';
+import type { Configuration, UsageRecord } from '../dist/src/types.js';
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, appendFileSync, rmSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, appendFileSync, rmSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
 import { usageRecord, Collector } from '../dist/src/collector.js';
+import { uploadUsage } from '../dist/src/remote.js';
 import { Game } from '../dist/src/game.js';
 
 const since = Date.parse('2026-10-08T00:00:00Z');
@@ -76,4 +78,21 @@ test('one request carries many files and merged records credit the same tokens; 
   assert.equal((await g.player())!.tokens, 900 * 15 + 30 * (44_000 - 22_000));
   await c.scan(); assert.equal(sizes.length, 3, 'unchanged files are not sent again');
   rmSync(join(codexRoot, 'rollout-0.jsonl')); await c.scan(); assert.equal(c.cursors.size, 32, 'deleted transcripts are forgotten');
+});
+test('one process per computer uploads and new sessions continue from the saved cursors', async t => {
+  const root = mkdtempSync(join(tmpdir(), 'tokenpet-upload-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const transcripts = join(root, 'claude'); mkdirSync(transcripts);
+  writeFileSync(join(transcripts, 'session.jsonl'), JSON.stringify(claude()) + '\n');
+  const config = { dataDir: join(root, 'data'), baseUrl: 'https://pets.example.test' } as Configuration; // partial config on purpose
+  const lock = join(config.dataDir, 'usage-sync.lock');
+  let sent = 0;
+  const session = () => new Collector({ roots: { claude: [transcripts] }, since, send: async () => { sent++; } });
+  mkdirSync(config.dataDir); writeFileSync(lock, String(process.pid));
+  assert.equal(await uploadUsage(config, session(), 7), null, 'another live process is uploading');
+  writeFileSync(lock, String(spawnSync(process.execPath, ['-e', '']).pid));
+  assert.equal((await uploadUsage(config, session(), 7))!.files, 1);
+  assert.equal(sent, 1, 'a lock left by an exited process is taken over'); assert.ok(!existsSync(lock));
+  await uploadUsage(config, session(), 7); assert.equal(sent, 1, 'a new session does not resend the history');
+  await uploadUsage(config, session(), 8); assert.equal(sent, 2, 'cursors belong to one member on one server');
 });
