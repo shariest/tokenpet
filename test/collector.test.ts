@@ -20,6 +20,8 @@ test('Claude counts cache input once, dedupes by message ID and excludes content
   assert.equal(r.key, usageRecord('claude', { ...claude(), uuid: 'other-block' }, {}, since)!.key);
   assert.ok(!JSON.stringify(r).includes('private code'));
   assert.equal(usageRecord('claude', { ...claude(), timestamp: 'bad' }, {}, since)!.baseline, true);
+  assert.equal(usageRecord('claude', { ...claude(), message: { id: 'huge', usage: { input_tokens: 1e12, output_tokens: 0, cache_read_input_tokens: 1 } } }, {}, since), null,
+    'a total the server would reject never blocks a batch');
 });
 test('Codex cumulative totals already include cache and reasoning tokens', () => {
   const context = {}; assert.equal(usageRecord('codex', codex, context, since), null);
@@ -46,4 +48,32 @@ test('streaming partial lines, retries, restarts, copied transcripts and truncat
   await new Collector(options).scan(); assert.equal((await g.player())!.tokens, 400600);
   writeFileSync(file, JSON.stringify(claude(800000)) + '\n');
   await c.scan(); assert.equal((await g.player())!.tokens, 800600);
+});
+test('one request carries many files and merged records credit the same tokens; a failed delivery ends the scan', async t => {
+  const root = mkdtempSync(join(tmpdir(), 'tokenpet-batch-')); const g = await Game.open(':memory:');
+  t.after(async () => { await g.close(); rmSync(root, { recursive: true, force: true }); });
+  const claudeRoot = join(root, 'claude'), codexRoot = join(root, 'codex'), early = '2026-10-07T00:00:00Z';
+  mkdirSync(claudeRoot); mkdirSync(codexRoot);
+  for (let file = 0; file < 3; file++) {
+    // Claude writes a line per content block, so every message appears twice.
+    const lines = Array.from({ length: 300 }, (_, index) => JSON.stringify({ type: 'assistant', timestamp, message: { id: `message-${file}-${index}`, usage: { input_tokens: 10, output_tokens: 5 } } }));
+    writeFileSync(join(claudeRoot, `session-${file}.jsonl`), lines.flatMap(line => [line, line]).join('\n') + '\n');
+  }
+  for (let file = 0; file < 30; file++) {
+    // Codex repeats the cumulative session total; the first half predates the account and only sets the baseline.
+    const events = Array.from({ length: 40 }, (_, index) => JSON.stringify({ type: 'event_msg', timestamp: index < 20 ? early : timestamp,
+      payload: { type: 'token_count', info: { total_token_usage: { input_tokens: (index + 1) * 1000, output_tokens: (index + 1) * 100 } } } }));
+    writeFileSync(join(codexRoot, `rollout-${file}.jsonl`), [JSON.stringify({ type: 'session_meta', payload: { id: `session-${file}` } }), ...events].join('\n') + '\n');
+  }
+  const sizes: number[] = []; let failures = 1;
+  const c = new Collector({ roots: { claude: [claudeRoot], codex: [codexRoot] }, since, send: async (rows: UsageRecord[]) => {
+    sizes.push(rows.length); if (failures-- > 0) throw new Error('rate limited'); return await g.ingest(rows);
+  } });
+  assert.equal((await c.scan()).errors, 1); assert.deepEqual(sizes, [500], 'a failed delivery stops the scan');
+  assert.equal(c.cursors.size, 0, 'undelivered files are read again'); assert.equal((await g.player())!.tokens, 0);
+  // 1,800 Claude lines → 900 messages; 1,200 Codex events → one baseline and one counted record per session.
+  await c.scan(); assert.deepEqual(sizes, [500, 500, 460]);
+  assert.equal((await g.player())!.tokens, 900 * 15 + 30 * (44_000 - 22_000));
+  await c.scan(); assert.equal(sizes.length, 3, 'unchanged files are not sent again');
+  rmSync(join(codexRoot, 'rollout-0.jsonl')); await c.scan(); assert.equal(c.cursors.size, 32, 'deleted transcripts are forgotten');
 });

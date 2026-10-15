@@ -112,7 +112,8 @@ export async function startServer(config: Configuration, { game: suppliedGame, p
         if (path === '/api/catalog' && method === 'GET') return json(200, (await catalog(memberGame, url.searchParams)));
         if (path === '/api/rankings' && method === 'GET') return json(200, (await rankings(game, url.searchParams, auth?.playerId)));
         if (!auth || !memberGame) throw new GameError('로그인하거나 CLI 접근 키를 확인해 주세요.', 401);
-        if (auth.user && mutation) accounts.throttle(`mutation:${auth.playerId}`, 120, 60_000);
+        // Background usage sync has its own budget, so uploads never use up a member's own actions.
+        if (auth.user && mutation) accounts.throttle(`${path === '/api/usage' ? 'usage' : 'mutation'}:${auth.playerId}`, 120, 60_000);
         if (path === '/api/tokens' || path.startsWith('/api/tokens/')) {
           if (!auth.browser || !auth.user) throw new GameError('회원으로 웹에 로그인한 뒤 토큰을 관리해 주세요.', 403);
           if (path === '/api/tokens' && method === 'GET') return json(200, { tokens: await accounts.listTokens(auth.playerId) });

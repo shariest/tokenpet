@@ -32,7 +32,10 @@ export function usageRecord(source: Cli, value: unknown, context: Context, since
     if (typeof id !== 'string' || !id || !usage) return null;
     const values = [usage.input_tokens, usage.output_tokens, usage.cache_read_input_tokens ?? 0, usage.cache_creation_input_tokens ?? 0];
     if (!values.every(tokens)) return null;
-    return { source, key: hash(`claude:${id}`), input: values[0] + values[2] + values[3], output: values[1], baseline };
+    // The server rejects a whole request over one invalid total, so drop it here.
+    const input = values[0] + values[2] + values[3];
+    if (!tokens(input)) return null;
+    return { source, key: hash(`claude:${id}`), input, output: values[1], baseline };
   }
   return null;
 }
@@ -48,6 +51,9 @@ async function* files(root: string): AsyncGenerator<string> {
   }
 }
 
+// Game.ingest accepts at most 500 records per request.
+const batchLimit = 500;
+
 export class Collector {
   roots: Partial<Record<Cli, string[]>>; since: number; send: (records: UsageRecord[]) => unknown;
   cursors: Map<string, Cursor>; running: boolean; status: CollectorStatus;
@@ -56,14 +62,15 @@ export class Collector {
     this.cursors = new Map(); this.running = false;
     this.status = { scanning: false, files: 0, errors: 0, lastScan: null };
   }
-  async file(path: string, source: Cli) {
+  // Reads the complete lines added since the saved cursor. The caller saves the returned cursor once the records are delivered.
+  async read(path: string, source: Cli) {
     const info = await stat(path);
     const old = this.cursors.get(path);
     if (old && old.size === info.size && old.mtime === info.mtimeMs) return;
     const cursor = old && info.ino === old.ino && info.size >= old.size! && !(info.size === old.size && info.mtimeMs !== old.mtime)
       ? { ...old, context: { ...old.context } } : { offset: 0, context: {}, skipping: false };
-    let pending = Buffer.alloc(0), batch: UsageRecord[] = [];
-    const flush = async () => { if (batch.length) { await this.send(batch); batch = []; } };
+    const records: UsageRecord[] = [];
+    let pending = Buffer.alloc(0);
     if (info.size > cursor.offset) {
       const stream = createReadStream(path, { start: cursor.offset, end: info.size - 1, highWaterMark: 64 * 1024 });
       for await (const chunk of stream) {
@@ -76,8 +83,7 @@ export class Collector {
             let row;
             try { row = JSON.parse(line.toString('utf8')); } catch { continue; }
             const record = usageRecord(source, row, cursor.context, this.since);
-            if (record) batch.push(record);
-            if (batch.length >= 200) await flush();
+            if (record) records.push(record);
           }
           cursor.skipping = false;
         }
@@ -85,26 +91,56 @@ export class Collector {
           cursor.skipping = true; cursor.offset += pending.length; pending = Buffer.alloc(0);
         }
       }
-      await flush();
     }
-    // A partial final JSON line is reread next time. Cursor advances only after successful delivery.
-    this.cursors.set(path, { ...cursor, size: info.size, mtime: info.mtimeMs, ino: info.ino });
+    // A partial final JSON line is reread next time.
+    return { records, cursor: { ...cursor, size: info.size, mtime: info.mtimeMs, ino: info.ino } };
   }
   async scan(only?: string) {
     if (this.running) return this.status;
     this.running = true; this.status.scanning = true;
     let count = 0, errors = 0;
+    const paths: [Cli, string][] = [];
+    // One request carries up to 500 records from many files; a file's cursor advances only after its records are delivered.
+    let batch: UsageRecord[] = [], indexes = new Map<string, number>(), finished = new Map<string, Cursor>();
+    const deliver = async () => {
+      if (batch.length) await this.send(batch);
+      for (const [path, cursor] of finished) this.cursors.set(path, cursor);
+      batch = []; indexes = new Map(); finished = new Map();
+    };
     try {
       for (const [source, roots] of Object.entries(this.roots)) {
         if (only && only !== source) continue;
         for (const root of roots) {
-          try {
-            for await (const path of files(root)) {
-              try { await this.file(path, source as Cli); count++; } catch { errors++; }
-            }
-          } catch { errors++; }
+          try { for await (const path of files(root)) paths.push([source as Cli, path]); } catch { errors++; }
         }
       }
+      for (const [source, path] of paths) {
+        let read;
+        try { read = await this.read(path, source); count++; } catch { errors++; continue; }
+        if (!read) continue;
+        for (const record of read.records) {
+          const id = `${record.source}:${record.key}`, index = indexes.get(id);
+          // The server keeps each key's largest totals, so records of one key on the same side of the baseline
+          // merge into one with the same credit. Codex repeats its cumulative session total in every event.
+          if (index !== undefined && batch[index].baseline === record.baseline) {
+            batch[index].input = Math.max(batch[index].input, record.input);
+            batch[index].output = Math.max(batch[index].output, record.output);
+            continue;
+          }
+          if (batch.length >= batchLimit) await deliver();
+          indexes.set(id, batch.push(record) - 1);
+        }
+        if (read.records.length) finished.set(path, read.cursor); else this.cursors.set(path, read.cursor);
+      }
+      await deliver();
+      // Forget deleted transcripts so saved cursors do not grow forever.
+      if (!only && !errors) {
+        const listed = new Set(paths.map(([, path]) => path));
+        for (const path of this.cursors.keys()) if (!listed.has(path)) this.cursors.delete(path);
+      }
+    } catch {
+      // A failed delivery (rate limit, offline, revoked key) ends the scan; undelivered files are read again next time.
+      errors++;
     } finally {
       this.running = false;
       this.status = { scanning: false, files: count, errors, lastScan: Date.now() };

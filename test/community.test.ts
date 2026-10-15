@@ -122,10 +122,12 @@ test('forwarded addresses affect rate limits only behind an explicitly trusted s
   }
 });
 
-test('member write limits leave reads and other members available', async t => {
+test('member write limits keep usage sync apart and leave reads and other members available', async t => {
   const { call, signup } = await fixture(t);
   const alice = await signup('alice'), bob = await signup('bob');
   for (let i = 0; i < 120; i++) assert.equal((await call('/api/usage', { records: [] }, alice.cookie)).status, 400);
+  assert.equal((await call('/api/usage', { records: [] }, alice.cookie)).status, 429);
+  for (let i = 0; i < 120; i++) assert.equal((await call('/api/checkin', {}, alice.cookie)).status, 200, 'a busy uploader never blocks member actions');
   assert.equal((await call('/api/checkin', {}, alice.cookie)).status, 429);
   assert.equal((await call('/api/state', undefined, alice.cookie)).status, 200);
   assert.equal((await call('/api/checkin', {}, bob.cookie)).status, 200);
