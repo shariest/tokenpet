@@ -159,7 +159,7 @@ npm run build           # 소스 변경 후 다시 빌드
 npm install --global .  # 현재 소스로 자동 연결 설치 (tokenpet 명령)
 ```
 
-현재 정식 버전은 [`v1.0.0`](https://github.com/shariest/tokenpet/releases/tag/v1.0.0)입니다. 설치 명령은 `main`의 설치 프로그램을 사용하며, 프로그램 소스는 `v1.0.0` 태그로 고정합니다. 개발 브랜치는 [`develop`](https://github.com/shariest/tokenpet/tree/develop)이며, 검증한 개발 내용을 PR로 [`main`](https://github.com/shariest/tokenpet/tree/main)에 병합합니다. npm 레지스트리에는 배포하지 않았습니다.
+현재 정식 버전은 [`v1.0.1`](https://github.com/shariest/tokenpet/releases/tag/v1.0.1)입니다. 설치 명령은 `main`의 설치 프로그램을 사용하며, 프로그램 소스는 `v1.0.1` 태그로 고정합니다. 개발 브랜치는 [`develop`](https://github.com/shariest/tokenpet/tree/develop)이며, 검증한 개발 내용을 PR로 [`main`](https://github.com/shariest/tokenpet/tree/main)에 병합합니다. npm 레지스트리에는 배포하지 않았습니다.
 
 ## CLI 화면 안의 펫
 
