@@ -25,8 +25,8 @@ function fixture(t: TestContext) {
   return { dir, native, vendor, config, options };
 }
 
-function run(path: string, args: string[], native: string) {
-  return spawnSync(path, args, { input: 'stdin preserved\n', encoding: 'utf8', env: { ...process.env, PATH: native, TERM_PROGRAM: 'WarpTerminal', ORCA_IMAGE_PROTOCOL: undefined, TOKENPET_DATA_DIR: undefined, TOKENPET_ORIGINAL_CODEX: undefined, TOKENPET_ORIGINAL_CLAUDE: undefined }, timeout: 10000 });
+function run(path: string, args: string[], native: string, hint?: string) {
+  return spawnSync(path, args, { input: 'stdin preserved\n', encoding: 'utf8', env: { ...process.env, PATH: native, TERM_PROGRAM: 'WarpTerminal', ORCA_IMAGE_PROTOCOL: hint, TOKENPET_DATA_DIR: undefined, TOKENPET_ORIGINAL_CODEX: undefined, TOKENPET_ORIGINAL_CLAUDE: undefined }, timeout: 10000 });
 }
 
 function runWithForeignOwners(paths: string[], script: string) {
@@ -127,7 +127,7 @@ test('CLI updates are repaired automatically and uninstalled CLIs stay removed',
   assert.ok(!existsSync(join(native, 'claude')));
 });
 
-test('Orca image hints are saved in launchers, survive CLI repair and are removed by reinstall without a hint', t => {
+test('Orca image hints survive reinstall and repair while explicit runtime and setup values take precedence', t => {
   const { native, vendor, options, config } = fixture(t);
   const file = join(config.dataDir, 'cli-launchers.json');
   installLaunchers({ ...options, env: { ...options.env, ORCA_IMAGE_PROTOCOL: 'kitty' } });
@@ -137,6 +137,11 @@ test('Orca image hints are saved in launchers, survive CLI repair and are remove
     assert.equal(result.status, 17, result.stderr);
     assert.equal(JSON.parse(result.stdout).hint, 'kitty');
     assert.equal(JSON.parse(result.stdout).term, 'WarpTerminal', 'stored hints must not change help or headless terminal identification');
+    for (const hint of ['none', 'sixel', '', "quote'and\"} $(exit 99)"]) {
+      const override = run(join(native, cli), ['--version'], native, hint);
+      assert.equal(override.status, 17, override.stderr);
+      assert.equal(JSON.parse(override.stdout).hint, hint, 'the current terminal must override the saved hint');
+    }
   }
   const updated = join(vendor, 'codex-v2'); copyFileSync(join(vendor, 'codex'), updated);
   rmSync(join(native, 'codex')); symlinkSync(updated, join(native, 'codex'));
@@ -144,11 +149,19 @@ test('Orca image hints are saved in launchers, survive CLI repair and are remove
   assert.equal(JSON.parse(run(join(native, 'codex'), ['--version'], native).stdout).hint, 'kitty');
   assert.equal(cliExecutable('codex', join(config.dataDir, 'bin'), native), updated);
   installLaunchers(options);
-  assert.equal(JSON.parse(readFileSync(file, 'utf8')).env.ORCA_IMAGE_PROTOCOL, undefined);
-  for (const cli of ['codex', 'claude']) assert.equal(JSON.parse(run(join(native, cli), ['--version'], native).stdout).hint, undefined);
+  assert.equal(JSON.parse(readFileSync(file, 'utf8')).env.ORCA_IMAGE_PROTOCOL, 'kitty');
+  for (const cli of ['codex', 'claude']) assert.equal(JSON.parse(run(join(native, cli), ['--version'], native).stdout).hint, 'kitty');
   rmSync(join(native, 'codex')); symlinkSync(updated, join(native, 'codex'));
   repairLaunchers(config);
-  assert.equal(JSON.parse(run(join(native, 'codex'), ['--version'], native).stdout).hint, undefined);
+  assert.equal(JSON.parse(run(join(native, 'codex'), ['--version'], native).stdout).hint, 'kitty');
+  for (const hint of ['none', '', "quote'and\"} $(exit 99)"]) {
+    installLaunchers({ ...options, env: { ...options.env, ORCA_IMAGE_PROTOCOL: hint } });
+    installLaunchers(options);
+    assert.equal(JSON.parse(readFileSync(file, 'utf8')).env.ORCA_IMAGE_PROTOCOL, hint);
+    const result = run(join(native, 'codex'), ['--version'], native);
+    assert.equal(result.status, 17, result.stderr);
+    assert.equal(JSON.parse(result.stdout).hint, hint);
+  }
 });
 
 test('standalone executables are preserved and restored to the launch path after an update', t => {
@@ -252,7 +265,7 @@ test('an all-skipped reinstall persists new settings without dropping the recove
     const registry = JSON.parse(readFileSync(file, 'utf8'));
     assert.deepEqual(registry.entries, previous.entries);
     assert.equal(registry.bin, bin);
-    assert.equal(registry.env.ORCA_IMAGE_PROTOCOL, undefined);
+    assert.equal(registry.env.ORCA_IMAGE_PROTOCOL, 'kitty');
     assert.equal(registry.env.TOKENPET_PORT, '5678');
     for (const [index, cli] of ['codex', 'claude'].entries()) {
       assert.equal(readlinkSync(join(native, cli)), before[index].link);
@@ -263,7 +276,7 @@ test('an all-skipped reinstall persists new settings without dropping the recove
   rmSync(join(native, 'claude')); symlinkSync(updated, join(native, 'claude'));
   repairLaunchers(config);
   const repaired = readFileSync(join(native, 'claude'), 'utf8');
-  assert.ok(!repaired.includes('ORCA_IMAGE_PROTOCOL='));
+  assert.ok(repaired.includes('ORCA_IMAGE_PROTOCOL=') && repaired.includes('kitty'));
   assert.ok(repaired.includes('TOKENPET_PORT=') && repaired.includes('5678'));
   assert.ok(repaired.includes(bin.replaceAll("'", "'\\''")), 'later repair must use the newly saved package');
 });

@@ -70,8 +70,9 @@ export async function launchCLI(cli: string | undefined, args: string[]) {
     } catch (error) { console.error(`TokenPet: ${error instanceof Error ? error.message : String(error)} CLI는 계속 실행합니다.`); }
     if (cli === 'codex') {
       const warp = env.TERM_PROGRAM === 'WarpTerminal';
-      // Codex ignores Orca's image hint and prioritizes TERM_PROGRAM over TERM.
-      if (warp || (env.TERM_PROGRAM === 'Orca' && env.ORCA_IMAGE_PROTOCOL === 'kitty')) {
+      // shortcut: assume Kitty for hintless Orca until older remote servers advertise image capabilities.
+      const orca = env.TERM_PROGRAM === 'Orca' && (env.ORCA_IMAGE_PROTOCOL ?? 'kitty') === 'kitty';
+      if (warp || orca) {
         env.TERM = 'xterm-kitty'; env.TERM_PROGRAM = 'kitty';
         stableImages = warp && ['darwin', 'linux'].includes(process.platform) && existsSync('/usr/bin/script');
       }

@@ -19,6 +19,7 @@ on:
       - 'test/server.test.ts'
       - 'test/statusline.test.ts'
       - 'test/community.test.ts'
+      - 'test/collector.test.ts'
       - 'scripts/windows-smoke.ps1'
       - '.github/workflows/windows.yml'
   workflow_dispatch:
@@ -43,8 +44,8 @@ jobs:
           npm run build
       - name: Check Windows CLI invocation, credential permissions, and stable graphics
         run: node --test test/windows.test.ts test/codex-render.test.ts
-      - name: Check economy, attendance, and shared CLI sessions
-        run: node --test test/game.test.ts test/server.test.ts test/community.test.ts test/statusline.test.ts
+      - name: Check economy, attendance, shared CLI sessions, and one usage uploader per computer
+        run: node --test test/game.test.ts test/server.test.ts test/community.test.ts test/statusline.test.ts test/collector.test.ts
       - name: Check pet thumbnails and live frame replacement on Windows
         run: node --test --test-name-pattern="Claude footer|Codex spritesheet|Codex export|live Codex|terminal|owned pet|status explains" test/native-pet.test.ts test/terminal.test.ts
       - name: Exercise Windows PowerShell 5.1 installer

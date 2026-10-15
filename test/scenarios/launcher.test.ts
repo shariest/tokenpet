@@ -113,7 +113,9 @@ test('full setup skips read-only CLI, registers MCP, then saved Orca hint surviv
   assert.deepEqual(settings.subagentStatusLine, agentStatus);
   assert.deepEqual(JSON.parse(readFileSync(join(config.dataDir, 'previous-statusline.json'), 'utf8')), previousStatus);
   writeFileSync(join(dir, 'claude/settings.json'), JSON.stringify({ ...settings, statusLine: { type: 'command', command: settings.statusLine.command, refreshInterval: 2 } }));
-  await execute(process.execPath, [resolve('bin/tokenpet.mjs'), 'setup'], { env, timeout: 20000 });
+  const withoutHint = { ...env }; delete withoutHint.ORCA_IMAGE_PROTOCOL;
+  await execute(process.execPath, [resolve('bin/tokenpet.mjs'), 'setup'], { env: withoutHint, timeout: 20000 });
+  assert.equal(JSON.parse(readFileSync(join(config.dataDir, 'cli-launchers.json'), 'utf8')).env.ORCA_IMAGE_PROTOCOL, 'kitty');
   const restored = JSON.parse(readFileSync(join(dir, 'claude/settings.json'), 'utf8'));
   assert.equal(restored.statusLine.padding, 1);
   assert.equal(restored.statusLine.hideVimModeIndicator, true);
@@ -128,7 +130,6 @@ test('full setup skips read-only CLI, registers MCP, then saved Orca hint surviv
   rmSync(join(native, 'codex')); symlinkSync(updated, join(native, 'codex'));
   repairLaunchers(config);
   assert.equal(readlinkSync(join(native, 'codex')), `${updated}.tokenpet-launcher`);
-  const withoutHint = { ...env }; delete withoutHint.ORCA_IMAGE_PROTOCOL;
   const args = ['words with spaces', "quote'and\"", '$(never-execute)'];
   const { child } = await launch('codex', args, true, withoutHint);
   assert.deepEqual(child, { args, term: 'xterm-kitty', program: 'kitty', hint: 'kitty', tty: true });
@@ -136,6 +137,23 @@ test('full setup skips read-only CLI, registers MCP, then saved Orca hint surviv
   assert.equal((await app.game.player())!.coins, 400, 'the installed launcher reached the real fixture attendance API once');
   assert.equal((await app.game.db.prepare('SELECT COUNT(*) AS n FROM checkins').get())!.n, 1);
   assert.deepEqual(readFileSync(join(readOnly, 'codex')), systemBefore);
+  for (const hint of ['none', 'sixel', '']) {
+    const overridden = await launch('codex', [], true, { ...env, ORCA_IMAGE_PROTOCOL: hint });
+    assert.deepEqual(overridden.child, { args: [], term: 'xterm-256color', program: 'Orca', hint, tty: true });
+  }
+});
+
+test('setup from SSH enables subsequent Orca PTY launches without an image hint', { skip: !unix }, async t => {
+  const { env, config, launch } = await fixture(t);
+  delete env.ORCA_IMAGE_PROTOCOL;
+  const ssh = { ...env }; delete ssh.TERM_PROGRAM;
+  await execute(process.execPath, [resolve('bin/tokenpet.mjs'), 'setup'], { env: ssh, timeout: 20000 });
+  assert.equal(JSON.parse(readFileSync(join(config.dataDir, 'cli-launchers.json'), 'utf8')).env.ORCA_IMAGE_PROTOCOL, undefined);
+  const { child } = await launch('codex', [], true);
+  assert.deepEqual(child, { args: [], term: 'xterm-kitty', program: 'kitty', tty: true });
+  assert.equal((await launch('codex', ['--version'], true)).child.program, 'Orca');
+  assert.equal((await launch('codex', ['exec', 'hello'], true)).child.program, 'Orca');
+  assert.equal((await launch('claude', [], true)).child.program, 'Orca');
 });
 
 test('installed Orca launcher keeps its existing pet on auth failure and leaves headless/help/Claude terminals unchanged', { skip: !unix }, async t => {

@@ -57,8 +57,13 @@ try {
     const { Collector } = await import('../src/collector.js');
     const collector = new Collector({ roots: config.roots, since: state.player.created, send: records => request('/api/usage', { records }) });
     if (argument && !['claude', 'codex'].includes(argument)) throw new Error('sync/watch 대상은 claude 또는 codex입니다.');
-    console.log(JSON.stringify(await collector.scan(argument)));
-    if (command === 'watch') setInterval(async () => { await collector.scan(argument); }, 10000);
+    // A member server gets one uploader per computer, shared with the Claude/Codex sessions and their saved cursors.
+    const { uploadUsage } = await import('../src/remote.js');
+    const scan = async () => config.remote
+      ? await uploadUsage(config, collector, state.player.id, argument) ?? { skipped: '이 컴퓨터의 다른 세션이 사용량을 보내는 중이에요.' }
+      : await collector.scan(argument);
+    console.log(JSON.stringify(await scan()));
+    if (command === 'watch') setInterval(async () => { await scan(); }, 10000);
   } else if (command === 'open') {
     if ((argument && argument !== 'dex') || process.argv.length > 4) throw new Error('사용법: tokenpet open [dex]');
     const url = configuration().baseUrl + (argument === 'dex' ? '/#dex' : '');

@@ -159,7 +159,7 @@ npm run build           # 소스 변경 후 다시 빌드
 npm install --global .  # 현재 소스로 자동 연결 설치 (tokenpet 명령)
 ```
 
-현재 정식 버전은 [`v1.0.0`](https://github.com/shariest/tokenpet/releases/tag/v1.0.0)입니다. 설치 명령은 `main`의 설치 프로그램을 사용하며, 프로그램 소스는 `v1.0.0` 태그로 고정합니다. 개발 브랜치는 [`develop`](https://github.com/shariest/tokenpet/tree/develop)이며, 검증한 개발 내용을 PR로 [`main`](https://github.com/shariest/tokenpet/tree/main)에 병합합니다. npm 레지스트리에는 배포하지 않았습니다.
+현재 정식 버전은 [`v1.0.1`](https://github.com/shariest/tokenpet/releases/tag/v1.0.1)입니다. 설치 명령은 `main`의 설치 프로그램을 사용하며, 프로그램 소스는 `v1.0.1` 태그로 고정합니다. 개발 브랜치는 [`develop`](https://github.com/shariest/tokenpet/tree/develop)이며, 검증한 개발 내용을 PR로 [`main`](https://github.com/shariest/tokenpet/tree/main)에 병합합니다. npm 레지스트리에는 배포하지 않았습니다.
 
 ## CLI 화면 안의 펫
 
@@ -180,9 +180,9 @@ codex resume <세션-ID>          # 기존 대화 이어서 실행
 
 캐릭터 아래에는 **밥그릇(포만감)·하트(기분)·번개(에너지)·물방울(청결)** 순서로 막대와 0~100 수치가 표시됩니다. 상태판도 펫 이미지의 일부라 `/statusline` 설정 없이 보입니다. 30 미만인 수치는 붉게 표시합니다.
 
-Codex 0.161–0.162는 Warp와 Orca의 이미지 지원을 자동 인식하지 못합니다. 대화형 Codex를 Warp에서 실행하거나 **`TERM_PROGRAM=Orca`·`ORCA_IMAGE_PROTOCOL=kitty`가 함께 설정된 Orca**에서 실행하면, 자식 Codex에만 `TERM=xterm-kitty`, `TERM_PROGRAM=kitty`를 전달합니다. 출석 요청이 실패해도 적용하며 전역 셸 환경과 원본 CLI는 바꾸지 않습니다. Claude·비대화형 호출·도움말·버전 조회에는 적용하지 않습니다. 다른 터미널은 Codex가 지원하는 Kitty/Sixel 이미지 기능이 필요하며, tmux/Zellij 안에서는 내장 펫을 표시하지 못합니다.
+Codex 0.161–0.162는 Warp와 Orca의 이미지 지원을 자동 인식하지 못합니다. 대화형 Codex를 Warp 또는 **`TERM_PROGRAM=Orca`인 Orca**에서 실행하면, 자식 Codex에만 `TERM=xterm-kitty`, `TERM_PROGRAM=kitty`를 전달합니다. Orca는 `ORCA_IMAGE_PROTOCOL=kitty`이거나 힌트가 없을 때 적용하므로, 일반 SSH 셸에서 설치한 뒤 구버전 Orca 서버로 접속해도 별도 설정이 필요하지 않습니다. 출석 요청이 실패해도 적용하며 전역 셸 환경과 원본 CLI는 바꾸지 않습니다. Claude·비대화형 호출·도움말·버전 조회에는 적용하지 않습니다. 다른 터미널은 Codex가 지원하는 Kitty/Sixel 이미지 기능이 필요하며, tmux/Zellij 안에서는 내장 펫을 표시하지 못합니다.
 
-Orca 앱은 **Inline Images가 켜져 있고 Kitty 이미지를 지원**해야 합니다. 구버전 Orca 서버가 이미지 힌트를 전달하지 않으면, 지원을 확인한 Orca 셸에서 `ORCA_IMAGE_PROTOCOL=kitty tokenpet setup`을 한 번 실행해 힌트를 실행기에 저장할 수 있습니다. 저장한 힌트는 CLI 업데이트 후 자동 연결 복구에도 유지됩니다. 힌트 없이 setup을 다시 실행하면 저장한 힌트를 제거합니다. 변경은 새 Codex 세션부터 적용하며, `TERM_PROGRAM_VERSION`만으로 PC의 Orca 앱 버전을 판단하지 않습니다.
+Orca 앱은 **Inline Images가 켜져 있고 Kitty 이미지를 지원**해야 합니다. `ORCA_IMAGE_PROTOCOL=none codex`로 이미지 호환 처리를 끌 수 있으며, 빈 값이나 `sixel`처럼 명시한 다른 값도 유지합니다. 현재 터미널의 힌트가 설치 때 저장한 값보다 우선합니다. `ORCA_IMAGE_PROTOCOL=kitty tokenpet setup`으로 저장한 값은 힌트 없이 재설치·setup·connect를 실행하거나 CLI 업데이트 후 자동 연결을 복구해도 유지합니다. 기본값을 바꾸려면 `ORCA_IMAGE_PROTOCOL=none tokenpet setup`처럼 값을 명시하세요. 변경은 새 Codex 세션부터 적용하며, `TERM_PROGRAM_VERSION`만으로 PC의 Orca 앱 버전을 판단하지 않습니다.
 
 Warp(macOS·Linux)에서는 Codex 세션마다 펫 이미지 번호를 분리합니다. 여러 탭의 Codex가 같은 번호의 이미지를 덮어쓰거나 지우면서 캐릭터와 상태창 전체가 깜빡이는 문제를 방지합니다. 애니메이션·돌봄·펫 교체 갱신은 유지하며, 시스템의 `/usr/bin/script`로 입력·창 크기 변경·종료 키를 전달합니다. 적용하려면 실행 중인 Codex를 한 번 재시작해야 합니다.
 
@@ -430,7 +430,7 @@ DB 파일은 기본적으로 `~/.tokenpet/game.sqlite`이며 Node의 `node:sqlit
 
 토큰 관리 API는 회원의 브라우저 세션으로만 이용합니다. CLI 토큰으로 다른 토큰을 발급할 수 없습니다. API 키와 쿠키를 동시에 보내면 거부합니다. 게임 변경 API에는 `Idempotency-Key`가 필요하고 사용량은 회원·제공자·기록 ID별 누적값으로 중복을 막습니다.
 
-공개 회원 서버의 변경 요청은 회원당 분당 120회, 한 번의 뽑기는 최대 1,000회로 제한합니다. 초과 뽑기는 차감 없이 거부합니다. 자체 보고한 사용량으로 큰 잔액을 만든 뒤 한 요청으로 서버를 오래 점유하는 일을 막기 위한 제한이며, 로컬 작업실에는 적용하지 않습니다.
+공개 회원 서버의 변경 요청은 회원당 분당 120회, 한 번의 뽑기는 최대 1,000회로 제한합니다. 초과 뽑기는 차감 없이 거부합니다. 사용량 동기화(`/api/usage`)에는 같은 한도를 따로 적용하므로 백그라운드 업로드가 돌봄·뽑기 같은 조작을 막지 않습니다. 자체 보고한 사용량으로 큰 잔액을 만든 뒤 한 요청으로 서버를 오래 점유하는 일을 막기 위한 제한이며, 로컬 작업실에는 적용하지 않습니다.
 
 공유는 기본 꺼짐입니다. 켜면 링크를 아는 사람이 도감 이름·펫·레벨·보유 수량을 볼 수 있습니다. 지갑·돌봄 기록·사용량은 공개하지 않습니다. 끄면 링크를 즉시 폐기합니다. `tokenpet export`는 서버가 없어도 열리는 독립 HTML을 만듭니다.
 
@@ -561,7 +561,7 @@ irm https://raw.githubusercontent.com/shariest/tokenpet/main/install.ps1 | iex
 
 ### 운영과 원격 사용량
 
-Claude·Codex의 MCP가 연결된 동안 개발 컴퓨터의 사용량 수집기가 **10초마다** 서버에 사용량을 보냅니다. 프롬프트나 소스 코드는 보내지 않습니다. CLI를 종료했다가 다시 실행하면 놓친 기록도 읽으며 중복 보상하지 않습니다. CLI 밖에서 계속 수집하려면 `tokenpet watch`, 한 번만 동기화하려면 `tokenpet sync`를 실행하세요. 서버에서 개발 컴퓨터의 로그 폴더를 마운트할 필요는 없습니다.
+Claude·Codex의 MCP가 연결된 동안 개발 컴퓨터의 사용량 수집기가 **10초마다** 서버에 사용량을 보냅니다. 프롬프트나 소스 코드는 보내지 않습니다. CLI를 종료했다가 다시 실행하면 놓친 기록도 읽으며 중복 보상하지 않습니다. Claude·Codex 세션을 여러 개 열어도 한 컴퓨터에서는 한 프로세스만 업로드합니다. 보낸 위치를 `~/.tokenpet/usage-sync.json`에 저장하므로 새 세션이 이미 보낸 기록을 다시 보내지 않습니다. 기록은 요청당 최대 500건으로 묶고, 서버가 요청을 거절하면 10초 뒤 이어서 보냅니다. CLI 밖에서 계속 수집하려면 `tokenpet watch`, 한 번만 동기화하려면 `tokenpet sync`를 실행하세요. 서버에서 개발 컴퓨터의 로그 폴더를 마운트할 필요는 없습니다.
 
 ```sh
 docker compose logs --tail=100

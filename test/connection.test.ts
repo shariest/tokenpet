@@ -1,4 +1,5 @@
 import type { TestContext } from 'node:test';
+import type { IncomingMessage } from 'node:http';
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -104,6 +105,23 @@ test('remote sync sends local usage automatically and refreshes the client pet a
   await request('/api/state', undefined, { config });
   assert.equal(readFileSync(manifest, 'utf8'), '{"id":"unrelated-pet"}');
   sync.stop(); assert.equal(startRemoteSync({ ...config, remote: false }), null);
+});
+
+test('a new session continues from the cursors the previous uploader saved', async t => {
+  const env = fixture(t), serverConfig = { ...configuration(fixture(t)), watch: false };
+  const app = await startServer(serverConfig, { port: 0 }); t.after(() => app.close());
+  let uploads = 0; app.server.on('request', (req: IncomingMessage) => { if (req.url === '/api/usage') uploads++; });
+  saveConnection(env.TOKENPET_DATA_DIR, { server: app.url, key: credential(serverConfig) });
+  const config = configuration(env);
+  mkdirSync(config.roots.claude[0], { recursive: true });
+  writeFileSync(join(config.roots.claude[0], 'session.jsonl'), JSON.stringify({ type: 'assistant', timestamp: new Date().toISOString(),
+    message: { id: 'saved-cursor-test', usage: { input_tokens: 400000, output_tokens: 0 } } }) + '\n');
+  for (const session of [1, 2]) {
+    const sync = startRemoteSync(config)!; t.after(() => sync.stop());
+    for (let i = 0; i < 100 && !sync.status?.lastScan; i++) await delay(20);
+    assert.equal(sync.status!.files, 1); assert.equal(uploads, 1, `session ${session} leaves the history sent once`);
+  }
+  assert.equal((await app.game.player())!.coins, 340); assert.ok(!existsSync(join(env.TOKENPET_DATA_DIR, 'usage-sync.lock')));
 });
 
 test('remote pet selection still refreshes when usage collection is disabled', async t => {
