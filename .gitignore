@@ -1,0 +1,183 @@
+# TokenPet local data
+.data/
+*.sqlite*
+artifacts/
+issues/
+
+### Java - Gradle / Spring ###
+HELP.md
+.gradle/
+build/
+src/main/generated/**
+!**/src/main/**/build/
+!**/src/test/**/build/
+!aot/**
+!aotTest/**
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+**/.vscode/*
+!.vscode/extensions.json
+
+### Claude Code ###
+.claude/*
+!.claude/agents/
+test/.claude/
+
+### Temp files ###
+*.png
+*.docx
+*.tmp
+*.swp
+*~
+
+### 바이너리 문서 (PDF/오피스) ###
+# 저장소는 소스만 관리한다. 산출물 문서는 diff·머지가 불가능하고 용량만 키운다.
+*.pdf
+*.doc
+*.ppt
+*.pptx
+*.xls
+*.xlsx
+*.hwp
+*.hwpx
+# 오피스 임시 잠금 파일 (~$문서명.pptx)
+~$*
+
+### Sample data ###
+TS_판결문/
+/benchmark/
+/ibk/
+
+### Frontend ###
+# Docker 빌드에서 생성하는 Spring SPA 산출물
+src/main/resources/static/
+
+### Local tools ###
+.omc/
+.archify/
+_workspace/
+.playwright-cli/
+estimate/
+.lint-venv/
+
+### License ###
+# 서버별로 발급받은 machine-id 바인딩 라이선스는 커밋하지 않는다.
+/license/
+
+### Java - Maven ###
+target/
+pom.xml.versionsBackup
+
+### Java - misc ###
+*.class
+*.jar
+*.war
+*.ear
+# wrapper jar 예외는 *.jar 뒤에 와야 이긴다 (git: 마지막 매칭 패턴 우선)
+!**/gradle/wrapper/gradle-wrapper.jar
+!**/.mvn/wrapper/maven-wrapper.jar
+# 커밋된 형태소분석기 lib jar 는 예외
+!libs/*.jar
+hs_err_pid*
+replay_pid*
+
+### Node.js / npm / pnpm / yarn ###
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/install-state.gz
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+### TypeScript / bundlers ###
+*.tsbuildinfo
+dist/
+.next/
+.nuxt/
+.vite/
+.turbo/
+.cache/
+coverage/
+
+### Python ###
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+.ipynb_checkpoints/
+
+### Rust ###
+# target/ 은 Maven 섹션에서 이미 커버
+# Cargo.lock 은 바이너리 crate면 커밋 — 라이브러리면 아래 주석 해제
+# Cargo.lock
+**/*.rs.bk
+*.pdb
+
+### Logs ###
+logs/
+*.log
+# deploy.sh 실행 출력 리다이렉트 산출물
+.deploy-*.log
+
+### Env / secrets ###
+.env
+.env.*
+!.env.example
+compose.override.yaml
+*.pem
+*.key
+
+### OS ###
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+### 사용자 매뉴얼 제작 소스 (docx 산출물은 *.docx 규칙으로 제외) ###
+docs/manual/source/
+scripts/e2e/reports/
+scripts/e2e/.state/
+# frontend 및 scripts/e2e의 node_modules·dist·.vite는 위 공통 규칙으로 제외
+# The root bin directory contains CLI source, unlike Java build directories.
+!/bin/

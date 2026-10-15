@@ -1,0 +1,14 @@
+*
+!package.json
+!package-lock.json
+!tsconfig.json
+!bin/
+!bin/**
+!src/
+!src/**
+!public/
+!public/**
+!integrations/
+!integrations/**
+!scripts/
+!scripts/build.mts

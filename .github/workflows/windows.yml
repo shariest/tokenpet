@@ -1,0 +1,54 @@
+name: Windows installer
+on:
+  push:
+    branches: [develop]
+    paths:
+      - 'install.ps1'
+      - 'src/**'
+      - 'bin/**'
+      - 'integrations/**'
+      - 'public/**'
+      - 'package*.json'
+      - 'tsconfig.json'
+      - 'scripts/build.mts'
+      - 'test/windows.test.ts'
+      - 'test/native-pet.test.ts'
+      - 'test/codex-render.test.ts'
+      - 'test/terminal.test.ts'
+      - 'test/game.test.ts'
+      - 'test/server.test.ts'
+      - 'test/statusline.test.ts'
+      - 'test/community.test.ts'
+      - 'scripts/windows-smoke.ps1'
+      - '.github/workflows/windows.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+      - name: Install dependencies and official CLIs
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm install --global @openai/codex@0.162.1 @anthropic-ai/claude-code@2.1.296 --no-audit --no-fund
+      - name: Typecheck and build TypeScript
+        run: |
+          npm run check
+          npm run build
+      - name: Check Windows CLI invocation, credential permissions, and stable graphics
+        run: node --test test/windows.test.ts test/codex-render.test.ts
+      - name: Check economy, attendance, and shared CLI sessions
+        run: node --test test/game.test.ts test/server.test.ts test/community.test.ts test/statusline.test.ts
+      - name: Check pet thumbnails and live frame replacement on Windows
+        run: node --test --test-name-pattern="Claude footer|Codex spritesheet|Codex export|live Codex|terminal|owned pet|status explains" test/native-pet.test.ts test/terminal.test.ts
+      - name: Exercise Windows PowerShell 5.1 installer
+        shell: powershell
+        env:
+          TOKENPET_REF: ${{ github.sha }}
+        run: ./scripts/windows-smoke.ps1

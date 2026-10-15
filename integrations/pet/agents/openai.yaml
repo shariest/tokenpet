@@ -1,0 +1,3 @@
+# Managed by tokenpet.
+policy:
+  allow_implicit_invocation: false

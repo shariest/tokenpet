@@ -1,0 +1,20 @@
+services:
+  tokenpet:
+    build: .
+    restart: unless-stopped
+    init: true
+    environment:
+      TOKENPET_PUBLIC_URL: http://localhost:${TOKENPET_PORT:-4780}
+      TOKENPET_DATABASE_URL: ${TOKENPET_DATABASE_URL:-}
+      TOKENPET_DATABASE_URL_FILE: ${TOKENPET_DATABASE_URL_FILE:-}
+      TOKENPET_DB_NAMESPACE: ${TOKENPET_DB_NAMESPACE:-tokenpet}
+      TOKENPET_DB_POOL_MAX: ${TOKENPET_DB_POOL_MAX:-30}
+      TOKENPET_DB_POOL_MIN: ${TOKENPET_DB_POOL_MIN:-}
+      TOKENPET_DB_CONNECT_TIMEOUT_MS: ${TOKENPET_DB_CONNECT_TIMEOUT_MS:-10000}
+      TOKENPET_DB_IDLE_TIMEOUT_MS: ${TOKENPET_DB_IDLE_TIMEOUT_MS:-30000}
+    ports:
+      - "127.0.0.1:${TOKENPET_PORT:-4780}:4780"
+    volumes:
+      - game:/data
+volumes:
+  game:

@@ -1,0 +1,43 @@
+{
+  "name": "tokenpet",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "TokenPet — raise a pixel pet in your AI coding agent's CLI.",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "bin": {
+    "tokenpet": "bin/tokenpet.mjs"
+  },
+  "files": [
+    "bin/tokenpet.mjs",
+    "dist",
+    "scripts/postinstall.mjs",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/postinstall.mjs",
+    "start": "node bin/tokenpet.mjs server",
+    "pet": "node bin/tokenpet.mjs",
+    "test": "node --test test/*.test.ts",
+    "test:scenario": "npm run build && node --test test/scenarios/*.test.ts",
+    "test:database": "npm run build && node scripts/test-databases.mts",
+    "check": "tsc && tsc -p tsconfig.test.json",
+    "build": "tsc && node dist/scripts/build.mjs",
+    "prepare": "npm run build",
+    "pretest": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.3.1",
+    "mariadb": "3.5.4",
+    "pg": "8.23.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.1",
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "typescript": "7.0.2"
+  }
+}

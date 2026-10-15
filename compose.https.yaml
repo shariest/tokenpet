@@ -1,0 +1,24 @@
+services:
+  tokenpet:
+    ports: !reset []
+    environment:
+      TOKENPET_PUBLIC_URL: https://${TOKENPET_ADDRESS:?Set TOKENPET_ADDRESS in .env}
+      TOKENPET_TRUST_PROXY: "1"
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      TOKENPET_ADDRESS: ${TOKENPET_ADDRESS:?Set TOKENPET_ADDRESS in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - certificates:/data
+      - caddy_config:/config
+    depends_on:
+      tokenpet:
+        condition: service_healthy
+volumes:
+  certificates:
+  caddy_config:

@@ -1,0 +1,3 @@
+{$TOKENPET_ADDRESS} {
+    reverse_proxy tokenpet:4780
+}
