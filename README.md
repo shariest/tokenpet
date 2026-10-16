@@ -159,7 +159,7 @@ npm run build           # 소스 변경 후 다시 빌드
 npm install --global .  # 현재 소스로 자동 연결 설치 (tokenpet 명령)
 ```
 
-현재 정식 버전은 [`v1.1.0`](https://github.com/shariest/tokenpet/releases/tag/v1.1.0)입니다. 설치 명령은 `main`의 설치 프로그램을 사용하며, 프로그램 소스는 `v1.1.0` 태그로 고정합니다. 개발 브랜치는 [`develop`](https://github.com/shariest/tokenpet/tree/develop)이며, 검증한 개발 내용을 PR로 [`main`](https://github.com/shariest/tokenpet/tree/main)에 병합합니다. npm 레지스트리에는 배포하지 않았습니다.
+현재 정식 버전은 [`v1.1.1`](https://github.com/shariest/tokenpet/releases/tag/v1.1.1)입니다. 설치 명령은 `main`의 설치 프로그램을 사용하며, 프로그램 소스는 `v1.1.1` 태그로 고정합니다. 개발 브랜치는 [`develop`](https://github.com/shariest/tokenpet/tree/develop)이며, 검증한 개발 내용을 PR로 [`main`](https://github.com/shariest/tokenpet/tree/main)에 병합합니다. npm 레지스트리에는 배포하지 않았습니다.
 
 ## CLI 화면 안의 펫
 
@@ -281,7 +281,7 @@ MCP 도구는 `pet_status`, `pet_checkin`, `pet_care`, `pet_gacha`, `pet_dex`, `
 
 설정 백업은 `~/.tokenpet/backups/<timestamp>/`, 이전 상태줄은 `previous-statusline.json`입니다. macOS/Linux에서는 자동 실행 연결 목록을 `cli-launchers.json`에 저장합니다. 설치 당시 `PATH`에 있는 사용자 소유의 `codex`·`claude` 명령 경로를 연결하므로, 기존 셸의 명령 캐시에도 적용됩니다. npm·기본 설치의 심볼릭 링크는 원본 옆의 실행 연결 파일을 가리키며 원본 파일은 유지합니다. 단일 실행 파일 설치는 같은 디렉터리의 `.tokenpet-original-<명령>`에 원본을 보존합니다. Windows에서는 원래 CLI 실행 파일을 그대로 사용하고 등록된 MCP가 서버를 시작합니다.
 
-셸 alias/function이 별도 실행 파일을 직접 호출하면 셸 우선순위가 적용됩니다. 시스템 소유이거나 쓰기 권한이 없는 CLI·원본·런처 경로는 경고와 함께 건너뛰고, 나머지 사용자 CLI 연결을 계속합니다. npm 링크가 가리키는 패키지 디렉터리도 쓰기 가능해야 합니다. 경고가 나오면 사용자 소유의 쓰기 가능한 CLI를 `PATH` 앞에 추가한 뒤 `tokenpet setup`을 다시 실행하세요. CLI 업데이트가 명령 링크를 교체하면 실행 중인 로컬 서버가 10초 안에 연결을 복구합니다. 서버가 꺼진 동안 CLI를 업데이트했거나 새로운 CLI 경로를 추가했다면 `tokenpet setup`으로 다시 연결할 수 있습니다. 서버 로그는 `~/.tokenpet/server.log`입니다.
+셸 alias/function이 별도 실행 파일을 직접 호출하면 셸 우선순위가 적용됩니다. 시스템 소유이거나 쓰기 권한이 없는 CLI·원본·런처 경로는 경고와 함께 건너뛰고, 나머지 사용자 CLI 연결을 계속합니다. npm 링크가 가리키는 패키지 디렉터리도 쓰기 가능해야 합니다. 경고가 나오면 사용자 소유의 쓰기 가능한 CLI를 `PATH` 앞에 추가한 뒤 `tokenpet setup`을 다시 실행하세요. CLI 업데이트가 명령 링크를 교체하면 10초 안에 연결을 복구합니다. 개인 PC용 설치는 로컬 서버가, 회원 서버에 연결한 PC는 Claude·Codex 세션이 실행하는 TokenPet MCP가 복구합니다. 업데이트 뒤 처음 연 세션은 복구 전에 시작됐을 수 있으니, Warp·Orca에서 Codex 펫이 보이지 않으면 Codex를 한 번 다시 시작하세요. 새로운 CLI 경로를 추가했다면 `tokenpet setup`으로 다시 연결할 수 있습니다. 서버 로그는 `~/.tokenpet/server.log`입니다.
 
 전용 명령은 Claude의 `~/.claude/commands/pet.md`, Codex의 `~/.codex/skills/pet/`에 설치됩니다. Codex가 Claude 스킬 폴더도 읽으므로 Claude는 명령 파일을 사용해 중복 노출을 피합니다.
 

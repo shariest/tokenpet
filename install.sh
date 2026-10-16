@@ -41,7 +41,7 @@ main() {
   fi
   command -v npm >/dev/null || { echo 'Node.js에 npm이 없어요. Node.js 24 이상을 다시 설치해 주세요.' >&2; return 1; }
   echo 'TokenPet을 다운로드합니다. Git이나 repository clone은 필요하지 않습니다.'
-  curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 https://codeload.github.com/shariest/tokenpet/tar.gz/refs/tags/v1.1.0 -o "$temporary/source.tar.gz"
+  curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 https://codeload.github.com/shariest/tokenpet/tar.gz/refs/tags/v1.1.1 -o "$temporary/source.tar.gz"
   mkdir "$temporary/app"
   tar -xzf "$temporary/source.tar.gz" --strip-components=1 -C "$temporary/app"
   (cd "$temporary/app" && npm ci --include=dev --ignore-scripts --no-audit --no-fund \

@@ -4,6 +4,7 @@ import { mkdirSync, readFileSync, renameSync, rmSync, statSync, utimesSync, writ
 import { join } from 'node:path';
 import { Collector } from './collector.js';
 import { request } from './client.js';
+import { repairLaunchers } from './cli-install.js';
 
 // An uploader refreshes its lock every 10 seconds; a lock left this long belongs to a stopped or hung process.
 const lockTimeout = 60_000;
@@ -82,6 +83,8 @@ export function startRemoteSync(config: Configuration) {
   let collector: Collector | undefined, stopped = false, running = false;
   const scan = async () => {
     if (stopped || running) return;
+    // No local server runs for a member server, so this loop restores the launchers that a CLI update replaces.
+    try { repairLaunchers(config); } catch (error) { console.error(`TokenPet 자동 연결 복구: ${error instanceof Error ? error.message : String(error)}`); }
     running = true;
     try {
       const state = await request('/api/state', undefined, { config });
