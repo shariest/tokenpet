@@ -3,9 +3,9 @@ import type { IncomingMessage } from 'node:http';
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, readFileSync, writeFileSync, statSync, existsSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync, writeFileSync, statSync, existsSync, mkdirSync, readlinkSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { configuration, credential, endpoint, saveConnection } from '../dist/src/config.js';
 import { connect } from '../dist/src/connect.js';
@@ -14,6 +14,7 @@ import { startServer } from '../dist/src/server.js';
 import { ensureServer } from '../dist/src/runtime.js';
 import { startRemoteSync } from '../dist/src/remote.js';
 import { installCodexPet } from '../dist/src/codex-pet.js';
+import { installLaunchers } from '../dist/src/cli-install.js';
 
 function fixture(t: TestContext) {
   const dataDir = mkdtempSync(join(tmpdir(), 'tokenpet-connect-'));
@@ -122,6 +123,23 @@ test('a new session continues from the cursors the previous uploader saved', asy
     assert.equal(sync.status!.files, 1); assert.equal(uploads, 1, `session ${session} leaves the history sent once`);
   }
   assert.equal((await app.game.player())!.coins, 340); assert.ok(!existsSync(join(env.TOKENPET_DATA_DIR, 'usage-sync.lock')));
+});
+
+test('a member-server session restores the launcher that a CLI update replaced', { skip: process.platform === 'win32' }, async t => {
+  const env = fixture(t), serverConfig = { ...configuration(fixture(t)), watch: false };
+  const app = await startServer(serverConfig, { port: 0 }); t.after(() => app.close());
+  saveConnection(env.TOKENPET_DATA_DIR, { server: app.url, key: credential(serverConfig) });
+  const config = { ...configuration(env), watch: false };
+  const native = join(env.TOKENPET_DATA_DIR, 'native'), entry = join(env.TOKENPET_DATA_DIR, 'package', 'codex.js');
+  mkdirSync(native); mkdirSync(join(env.TOKENPET_DATA_DIR, 'package'));
+  writeFileSync(entry, '#!/bin/sh\n', { mode: 0o700 }); symlinkSync(entry, join(native, 'codex'));
+  installLaunchers({ config, bin: resolve('bin/tokenpet.mjs'), backupDir: env.TOKENPET_DATA_DIR, env: { PATH: native } });
+  // npm replaces the whole package, launcher included, and links the command to the new entry point.
+  rmSync(`${entry}.tokenpet-launcher`); rmSync(join(native, 'codex')); symlinkSync(entry, join(native, 'codex'));
+  const sync = startRemoteSync(config)!; t.after(() => sync.stop());
+  for (let i = 0; i < 100 && readlinkSync(join(native, 'codex')) === entry; i++) await delay(20);
+  assert.equal(readlinkSync(join(native, 'codex')), `${entry}.tokenpet-launcher`);
+  assert.match(readFileSync(join(native, 'codex'), 'utf8'), /# >>> tokenpet >>>/);
 });
 
 test('remote pet selection still refreshes when usage collection is disabled', async t => {
