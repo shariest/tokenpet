@@ -134,7 +134,7 @@ function preview(id: string) {
   openModal(`<p class="eyebrow">FRIEND PORTRAIT / NO. ${String(pet.number).padStart(3, '0')}</p><h2>${esc(pet.name)}</h2>
     <div class="pet-preview"><div class="portrait-art">${sprite(pet)}<span>${owned && !shared && pet.sleeping ? '쉬는 중 · z Z' : '작은 친구, 가까이 보기'}</span></div>
     <div class="portrait-info">${pill(pet.tier)}<p>${owned ? `Lv.${pet.level} · ${pet.copies}마리 보유${selected ? ' · 함께하는 중' : ''}` : '아직 만나지 못한 친구예요.'}</p><code>${esc(pet.id)}</code>
-    ${owned && state && !shared ? `<div class="portrait-vitals">${([['포만감', pet.hunger!], ['기분', pet.happiness!], ['에너지', pet.energy!], ['청결', pet.hygiene!]] as [string, number][]).map(([label, value]) => `<div class="vital"><div><span>${label}</span><b>${Math.round(value)}/100</b></div><div class="meter"><span style="width:${value}%"></span></div></div>`).join('')}</div><p>${pet.sleeping ? '잠을 자며 에너지를 시간당 20씩 회복해요.' : selected ? '함께하는 동안 상태가 줄고, 에너지를 시간당 2씩 사용해요.' : '대기 중에는 다른 상태를 유지하고, 에너지를 시간당 2씩 회복해요.'}</p>` : ''}</div></div>`);
+    ${owned && state && !shared ? `<div class="portrait-vitals">${([['포만감', pet.hunger!], ['기분', pet.happiness!], ['에너지', pet.energy!], ['청결', pet.hygiene!]] as [string, number][]).map(([label, value]) => `<div class="vital"><div><span>${label}</span><b>${Math.round(value)}/100</b></div><div class="meter"><span style="width:${value}%"></span></div></div>`).join('')}</div><p>${pet.sleeping ? '잠을 자며 에너지를 시간당 20씩 회복하고, 가득 차면 스스로 깨요.' : selected ? '함께하는 동안 상태가 줄고, 에너지를 시간당 2씩 사용해요.' : '대기 중에는 다른 상태를 유지하고, 에너지를 시간당 2씩 회복해요.'}</p>` : ''}</div></div>`);
 }
 function connections() {
   const current = state;

@@ -271,6 +271,28 @@ test('a sleeping reserve pet keeps its needs and recovers while another receives
   assert.equal((await g.state()).active.energy, 95, 'waking must preserve recovered energy');
   assert.equal((await g.state()).pets.find(p => p.id === other)!.energy, 73);
 });
+test('a sleeping pet wakes up on its own once its energy is full', async t => {
+  let now = 1_000_000;
+  const g = await game(t, { now: () => now, random: () => 0 });
+  g.random = max => max === 10000 ? 0 : 1;
+  const other = (await change(g, () => g.pull(1))).results[0].id;
+  const vitals = async (id: string) => { const p = (await g.state()).pets.find(p => p.id === id)!; return [p.sleeping, p.energy]; };
+  await change(g, () => g.care('play'));
+  await change(g, () => g.care('sleep'));
+  now += 3_600_000; assert.deepEqual(await vitals('sprout'), [true, 95]);
+  // 75 → 100 takes 1.25 hours; the selected pet then spends 2 energy per hour for the remaining 0.75 hours.
+  now += 3_600_000; assert.deepEqual(await vitals('sprout'), [false, 98.5]);
+  await assert.rejects(() => change(g, () => g.care('wake')), { status: 409, message: /이미 깨어/ });
+  await change(g, () => g.equip(other));
+  assert.deepEqual(await vitals('sprout'), [false, 98.5], 'switching pets saves the wake-up');
+  await change(g, () => g.care('sleep'));
+  await change(g, () => g.equip('sprout'));
+  // A reserve pet wakes at full energy too and keeps it, since waiting pets regain energy.
+  now += 3_600_000; assert.deepEqual(await vitals(other), [false, 100]);
+  await change(g, () => g.equip(other));
+  now += 60_000; // still shown as 100 although the selected pet has started spending energy
+  await assert.rejects(() => change(g, () => g.care('sleep')), { status: 409, message: /졸리지/ });
+});
 test('only the selected pet decays and switches preserve separate active and reserve intervals', async t => {
   let now = 1_000_000;
   const g = await game(t, { now: () => now, random: () => 0 });

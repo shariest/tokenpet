@@ -63,10 +63,12 @@ export class Game {
   pet(row: PetRow, equipped: string, now = this.now()): Pet {
     const hours = Math.max(0, now - row.updated) / 3_600_000;
     const active = row.species === equipped, activeHours = active ? hours : 0;
+    // A sleeping pet wakes up on its own once its energy is full and then spends or regains energy like any awake pet.
+    const hoursToFull = row.sleeping ? (100 - row.energy) / 20 : 0, sleepHours = Math.min(hours, hoursToFull);
     const level = Math.min(50, 1 + Math.floor(Math.sqrt(row.xp / 25)));
-    return { ...row, ...CATALOG.find(p => p.id === row.species)!, sleeping: !!row.sleeping,
+    return { ...row, ...CATALOG.find(p => p.id === row.species)!, sleeping: hours < hoursToFull,
       hunger: clamp(row.hunger - activeHours * 2), happiness: clamp(row.happiness - activeHours),
-      hygiene: clamp(row.hygiene - activeHours * 1.5), energy: clamp(row.energy + hours * (row.sleeping ? 20 : active ? -2 : 2)),
+      hygiene: clamp(row.hygiene - activeHours * 1.5), energy: clamp(row.energy + sleepHours * 20 + (hours - sleepHours) * (active ? -2 : 2)),
       level, stage: level >= 10 ? '성체' : level >= 5 ? '청소년' : '아기',
       nextLevelXp: level >= 50 ? null : level ** 2 * 25, cooldowns: JSON.parse(row.cooldowns),
     };
@@ -145,6 +147,8 @@ export class Game {
     requireValue(player.coins >= CARE[action].cost, '코인이 부족해요.', 409);
     requireValue(action === 'wake' || !pet.sleeping, '지금은 자고 있어요. 먼저 깨워 주세요.', 409);
     if (action === 'wake') requireValue(pet.sleeping, '이미 깨어 있어요.', 409);
+    // A pet shown at 100 would wake up moments after falling asleep; an awake selected pet sits just below 100.
+    if (action === 'sleep') requireValue(Math.round(pet.energy) < 100, '에너지가 가득해서 아직 졸리지 않아요.', 409);
     if (action === 'play') requireValue(pet.energy >= 10, '조금 쉬고 나서 놀아 주세요.', 409);
     const before = { ...pet };
     if (action === 'feed') { pet.hunger = clamp(pet.hunger + 25); pet.happiness = clamp(pet.happiness + 5); }
@@ -164,7 +168,7 @@ export class Game {
         const delta = Number((pet[key] - before[key]).toFixed(1));
         return delta ? `${label} ${Math.round(before[key])}→${Math.round(pet[key])} (${delta > 0 ? '+' : ''}${delta})` : null;
       }).filter(Boolean);
-    if (action === 'sleep') effects.push('자는 중 · 에너지 +20/시간');
+    if (action === 'sleep') effects.push('자는 중 · 에너지 +20/시간 · 가득 차면 스스로 깨요');
     else if (action === 'wake') effects.push('깨어났어요');
     else effects.push('경험치 +10');
     effects.push(CARE[action].cost ? `${CARE[action].cost} C 사용` : '무료');
@@ -206,10 +210,11 @@ export class Game {
     if (id === player.equipped) return { state: await this.state() };
     const now = this.now();
     const rows = await this.db.prepare('SELECT * FROM pets WHERE player_id=? AND species IN (?,?)').all(this.playerId, player.equipped, id);
-    const save = this.db.prepare('UPDATE pets SET hunger=?,happiness=?,energy=?,hygiene=?,updated=CASE WHEN updated>? THEN updated ELSE ? END WHERE player_id=? AND species=?');
+    // Saving the sleep state too keeps a pet that woke up on its own from falling asleep again.
+    const save = this.db.prepare('UPDATE pets SET hunger=?,happiness=?,energy=?,hygiene=?,sleeping=?,updated=CASE WHEN updated>? THEN updated ELSE ? END WHERE player_id=? AND species=?');
     for (const row of rows) {
       const pet = this.pet(row as unknown as PetRow, player.equipped, now);
-      await save.run(pet.hunger, pet.happiness, pet.energy, pet.hygiene, now, now, this.playerId, pet.id);
+      await save.run(pet.hunger, pet.happiness, pet.energy, pet.hygiene, +pet.sleeping, now, now, this.playerId, pet.id);
     }
     await this.db.prepare('UPDATE player SET equipped=? WHERE id=?').run(id, this.playerId);
     return { state: await this.state() };

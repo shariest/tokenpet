@@ -57,7 +57,7 @@ export function statusText(state: GameState, art = true) {
   const xp = p.nextLevelXp === null ? `경험치 ${p.xp} XP · 최고 레벨` : `경험치 ${p.xp}/${p.nextLevelXp} XP · 다음 레벨까지 ${p.nextLevelXp - p.xp} XP`;
   return `${art ? terminalPet(p, { compact: true }) + '\n' : ''}${state.player.name}\n${p.sleeping ? '(-ᴥ-)' : '(•ᴥ•)'} ${p.name} · Lv.${p.level} ${p.stage}\n` +
     vitals.map(([label, value, low, normal]) => `${label} ${'■'.repeat(Math.round(value / 10))}${'·'.repeat(10 - Math.round(value / 10))} ${Math.round(value)}/100 · ${value < 30 ? low : normal}`).join('\n') +
-    `\n${careHint(p)}${p.sleeping ? '\n다른 친구 키우기: list → equip <id> · 이 펫은 계속 자면서 회복합니다.' : ''}\n${xp}\n${state.player.coins.toLocaleString()} C · 도감 ${state.pets.length}/${state.catalog.length} · ${pityText(state)}\n${attendance}\n명령: Codex $pet help · Claude /pet help`;
+    `\n${careHint(p)}${p.sleeping ? '\n다른 친구 키우기: list → equip <id> · 이 펫은 자면서 회복하고, 에너지가 가득 차면 스스로 깨요.' : ''}\n${xp}\n${state.player.coins.toLocaleString()} C · 도감 ${state.pets.length}/${state.catalog.length} · ${pityText(state)}\n${attendance}\n명령: Codex $pet help · Claude /pet help`;
 }
 
 export function statusSummary(state: GameState) {
@@ -98,7 +98,7 @@ export function rulesText(state: GameState) {
     `feed · ${state.care.feed.cost} C · 포만감 +25 · 기분 +5 · 경험치 +10 (수치는 100까지)`,
     'play · 무료 · 기분 +25 · 에너지 -10 · 경험치 +10 (에너지 10 이상 필요)',
     `clean · ${state.care.clean.cost} C · 청결 +35 · 경험치 +10 (100까지)`,
-    'sleep / wake · 무료 · 자는 동안 에너지 +20/시간 · 자는 중에는 먼저 wake 후 돌봄',
+    'sleep / wake · 무료 · 자는 동안 에너지 +20/시간 · 가득 차면 스스로 깸 · 자는 중에는 먼저 wake 후 돌봄',
     '교대: sleep → list → equip <id> · 선택은 무료이며 각 펫의 수면 상태를 유지합니다. 다른 펫을 키우는 동안에도 잠든 펫은 회복합니다.',
     '돌봄과 코딩 경험치는 현재 선택한 펫에게, 코인은 공용 지갑에 쌓입니다.',
     `같은 돌봄은 ${state.rules.careCooldownMs / 1000}초마다 가능합니다. 잠들기·깨우기는 경험치를 주지 않습니다.`,

@@ -16,7 +16,7 @@ export async function startMcp() {
     const result = await request('/api/checkin', {});
     if (result.awarded) console.error(`TokenPet: ${result.message}`);
   } catch (error) { console.error(`TokenPet: ${error instanceof Error ? error.message : String(error)}`); }
-  const server = new McpServer({ name: 'tokenpet', version: '1.0.1' });
+  const server = new McpServer({ name: 'tokenpet', version: '1.1.0' });
   let sync: ReturnType<typeof startRemoteSync>;
   const register = <S extends z.ZodRawShape>(name: string, description: string, schema: S, readOnly: boolean, fn: (args: z.output<z.ZodObject<S>>) => Promise<string>) => server.registerTool(name, {
     description, inputSchema: z.object(schema), annotations: { readOnlyHint: readOnly, destructiveHint: !readOnly, openWorldHint: false },
