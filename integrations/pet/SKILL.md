@@ -27,6 +27,6 @@ Accept one action. Tiers: common, rare, epic, unique, legendary. Pages: positive
 
 Call the mapped tool once. No extra status calls, automatic paging, suggested actions, or mutation retries after uncertain failures. Missing MCP: report the connection error, no shell fallback. Gacha count must be a positive safe integer; submit the entire count once. If unaffordable, nothing is drawn/charged; never reduce or split the count. Sharing requires explicit on/off; inspect/export must not enable it. Export never overwrites.
 
-Costs: gacha 100 C/draw (duplicates +1 copy, +25 XP); feed 5 C; clean 3 C; other care/equip free. Pets sleep independently; equip never wakes them. A sleeping pet requires explicit wake before care. Startup auto-claims daily attendance (Asia/Seoul); call checkin only on request. Detailed effects/odds: rules.
+Costs: gacha 100 C/draw (duplicates +1 copy, +25 XP); feed 5 C; clean 3 C; other care/equip free. Pets sleep independently; equip never wakes them, and they wake on their own at full energy. A sleeping pet requires explicit wake before care. Startup auto-claims daily attendance (Asia/Seoul); call checkin only on request. Detailed effects/odds: rules.
 
 Reply briefly in the user's language, keeping changes, costs, balance, IDs and any omitted-results count. Do not expand summaries into art or repeated instructions. With --detail, preserve returned art in a code block. Put preview URLs outside it; never open automatically. Suggested command prefix: `/pet` in Claude, `$pet` in Codex.
