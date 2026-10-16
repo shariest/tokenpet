@@ -53,7 +53,7 @@ function Install-TokenPet {
         $npm = Join-Path $nodeDir 'node_modules\npm\bin\npm-cli.js'
         if (-not (Test-Path -LiteralPath $npm)) { throw 'npm is missing from this Node.js installation. Reinstall Node.js 24 or newer.' }
         $env:Path = "$nodeDir;$env:Path"
-        $ref = if ($env:TOKENPET_REF) { $env:TOKENPET_REF } else { 'v1.1.0' }
+        $ref = if ($env:TOKENPET_REF) { $env:TOKENPET_REF } else { 'v1.1.1' }
         if ($ref -notmatch '^[A-Za-z0-9._/-]+$') { throw 'Invalid TOKENPET_REF.' }
         Write-Host 'Downloading TokenPet. Git and repository cloning are not required.'
         $archive = Join-Path $temporary 'tokenpet.zip'
