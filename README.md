@@ -159,7 +159,7 @@ npm run build           # 소스 변경 후 다시 빌드
 npm install --global .  # 현재 소스로 자동 연결 설치 (tokenpet 명령)
 ```
 
-현재 정식 버전은 [`v1.1.1`](https://github.com/shariest/tokenpet/releases/tag/v1.1.1)입니다. 설치 명령은 `main`의 설치 프로그램을 사용하며, 프로그램 소스는 `v1.1.1` 태그로 고정합니다. 개발 브랜치는 [`develop`](https://github.com/shariest/tokenpet/tree/develop)이며, 검증한 개발 내용을 PR로 [`main`](https://github.com/shariest/tokenpet/tree/main)에 병합합니다. npm 레지스트리에는 배포하지 않았습니다.
+현재 정식 버전은 [`v1.1.2`](https://github.com/shariest/tokenpet/releases/tag/v1.1.2)입니다. 설치 명령은 `main`의 설치 프로그램을 사용하며, 프로그램 소스는 `v1.1.2` 태그로 고정합니다. 개발 브랜치는 [`develop`](https://github.com/shariest/tokenpet/tree/develop)이며, 검증한 개발 내용을 PR로 [`main`](https://github.com/shariest/tokenpet/tree/main)에 병합합니다. npm 레지스트리에는 배포하지 않았습니다.
 
 ## CLI 화면 안의 펫
 
@@ -184,7 +184,7 @@ Codex 0.161–0.162는 Warp와 Orca의 이미지 지원을 자동 인식하지 �
 
 Orca 앱은 **Inline Images가 켜져 있고 Kitty 이미지를 지원**해야 합니다. `ORCA_IMAGE_PROTOCOL=none codex`로 이미지 호환 처리를 끌 수 있으며, 빈 값이나 `sixel`처럼 명시한 다른 값도 유지합니다. 현재 터미널의 힌트가 설치 때 저장한 값보다 우선합니다. `ORCA_IMAGE_PROTOCOL=kitty tokenpet setup`으로 저장한 값은 힌트 없이 재설치·setup·connect를 실행하거나 CLI 업데이트 후 자동 연결을 복구해도 유지합니다. 기본값을 바꾸려면 `ORCA_IMAGE_PROTOCOL=none tokenpet setup`처럼 값을 명시하세요. 변경은 새 Codex 세션부터 적용하며, `TERM_PROGRAM_VERSION`만으로 PC의 Orca 앱 버전을 판단하지 않습니다.
 
-Warp(macOS·Linux)에서는 Codex 세션마다 펫 이미지 번호를 분리합니다. 여러 탭의 Codex가 같은 번호의 이미지를 덮어쓰거나 지우면서 캐릭터와 상태창 전체가 깜빡이는 문제를 방지합니다. 애니메이션·돌봄·펫 교체 갱신은 유지하며, 시스템의 `/usr/bin/script`로 입력·창 크기 변경·종료 키를 전달합니다. 적용하려면 실행 중인 Codex를 한 번 재시작해야 합니다.
+Warp(macOS·Linux)에서는 Codex 세션마다 펫 이미지 번호를 분리합니다. 여러 탭의 Codex가 같은 번호의 이미지를 덮어쓰거나 지우면서 캐릭터와 상태창 전체가 깜빡이는 문제를 방지합니다. 애니메이션·돌봄·펫 교체 갱신은 유지하며, 시스템의 `/usr/bin/script`로 입력·창 크기 변경·종료 키를 전달합니다. macOS에서는 창 크기 변경이 누락되지 않도록 중계 터미널의 행·열을 직접 동기화합니다. 적용하려면 실행 중인 Codex를 한 번 재시작해야 합니다.
 
 셸 재시작·설정 파일 편집·별도 실행 경로 지정은 필요하지 않습니다. 이미 실행 중인 CLI 프로세스에는 소급 적용되지 않으며, 다음 일반 `codex` 실행부터 적용됩니다. `$work-pets:pets`는 ChatGPT 앱의 펫 기능이며 이 게임의 `/pets tokenpet`·`$pet`과 별개입니다.
 

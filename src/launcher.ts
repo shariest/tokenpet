@@ -1,6 +1,8 @@
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import { constants as osConstants } from 'node:os';
 import { existsSync } from 'node:fs';
+import { createInterface } from 'node:readline';
+import type { Readable } from 'node:stream';
 import { cliExecutable, cliInvocation } from './cli-install.js';
 import { ensureServer } from './runtime.js';
 import { request } from './client.js';
@@ -79,18 +81,32 @@ export async function launchCLI(cli: string | undefined, args: string[]) {
     }
   }
   const invocation = cliInvocation(executable, args);
-  const child = stableImages ? spawn('/usr/bin/script', process.platform === 'darwin'
-    ? ['-q', '/dev/null', invocation[0], ...invocation[1]]
-    : ['-qefc', [invocation[0], ...invocation[1]].map(shellQuote).join(' '), '/dev/null'],
-  { stdio: ['inherit', 'pipe', 'inherit'], env }) : spawn(...invocation, { stdio: 'inherit', env });
+  const macScript = stableImages && process.platform === 'darwin';
   const wasRaw = !!process.stdin.isRaw;
+  if (stableImages) process.stdin.setRawMode(true);
+  const child = stableImages ? spawn('/usr/bin/script', process.platform === 'darwin'
+    ? ['-q', '/dev/null', '/bin/sh', '-c', '/usr/bin/tty >&3; exec 3>&-; exec "$@"', 'tokenpet-codex', invocation[0], ...invocation[1]]
+    : ['-qefc', [invocation[0], ...invocation[1]].map(shellQuote).join(' '), '/dev/null'],
+  { stdio: macScript ? ['inherit', 'pipe', 'inherit', 'pipe'] : ['inherit', 'pipe', 'inherit'], env }) : spawn(...invocation, { stdio: 'inherit', env });
   if (stableImages) {
-    process.stdin.setRawMode(true);
     child.stdout!.pipe(codexImageFilter()).pipe(process.stdout, { end: false });
   }
   const interrupt = () => {}; // The foreground child receives Ctrl+C directly.
   const terminate = () => child.kill('SIGTERM');
-  const resize = () => { if (stableImages) child.kill('SIGWINCH'); };
+  let terminal: string | undefined;
+  const resize = () => {
+    if (!stableImages) return;
+    if (!macScript) { child.kill('SIGWINCH'); return; }
+    if (!terminal || !process.stdout.rows || !process.stdout.columns) return;
+    // macOS script ignores SIGWINCH; resize its PTY directly to notify Codex.
+    try { execFileSync('/bin/stty', ['-f', terminal, 'rows', String(process.stdout.rows), 'columns', String(process.stdout.columns)], { stdio: 'ignore' }); }
+    catch {} // The PTY may already be closed while Codex exits.
+  };
+  const terminalName = macScript ? createInterface({ input: child.stdio[3] as Readable }) : undefined;
+  terminalName?.once('line', name => {
+    terminalName.close(); child.stdio[3]?.destroy();
+    if (/^\/dev\/ttys\d+$/.test(name)) { terminal = name; resize(); }
+  });
   process.on('SIGINT', interrupt); process.on('SIGTERM', terminate);
   process.on('SIGWINCH', resize);
   try {
@@ -100,6 +116,8 @@ export async function launchCLI(cli: string | undefined, args: string[]) {
     process.exitCode = code ?? (128 + (signal ? osConstants.signals[signal] || 0 : 0));
   } finally {
     process.off('SIGINT', interrupt); process.off('SIGTERM', terminate); process.off('SIGWINCH', resize);
+    terminalName?.close();
+    if (macScript) child.stdio[3]?.destroy();
     if (stableImages) process.stdin.setRawMode(wasRaw);
   }
 }

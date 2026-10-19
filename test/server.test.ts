@@ -411,8 +411,9 @@ test('TTY launchers distinguish headless commands from prompts and option values
     const parent = JSON.parse(lines.at(-1));
     assert.deepEqual(parent.rawModes, warpFilter ? [true, false] : []);
     assert.deepEqual(parent.wrappers, warpFilter ? [{ command: '/usr/bin/script', args: process.platform === 'darwin'
-      ? ['-q', '/dev/null', process.execPath, executable, ...args]
-      : ['-qefc', [process.execPath, executable, ...args].map(shellQuote).join(' '), '/dev/null'], stdio: ['inherit', 'pipe', 'inherit'] }] : []);
+      ? ['-q', '/dev/null', '/bin/sh', '-c', '/usr/bin/tty >&3; exec 3>&-; exec "$@"', 'tokenpet-codex', process.execPath, executable, ...args]
+      : ['-qefc', [process.execPath, executable, ...args].map(shellQuote).join(' '), '/dev/null'],
+      stdio: process.platform === 'darwin' ? ['inherit', 'pipe', 'inherit', 'pipe'] : ['inherit', 'pipe', 'inherit'] }] : []);
     if (warpFilter) assert.match(lines[1], /\x1b_G[^;]*i=(?!49374[,;])\d+,m=0;UE5H\x1b\\/);
     else assert.equal(lines[1], graphic, 'Orca and other terminals must receive unfiltered native graphics');
     assert.deepEqual(requests.slice(beforeRequests), interactive ? ['/api/health', '/api/checkin'] : []);
