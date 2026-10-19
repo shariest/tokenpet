@@ -185,6 +185,66 @@ test('installed Warp Codex launcher preserves real PTY arguments and status thro
   assert.equal((await app.game.player())!.coins, 400);
 });
 
+test('Warp PTY forwards repeated resizes and typing and restores terminal mode', { skip: !unix || !existsSync('/usr/bin/script') }, async t => {
+  const { env, vendor, native } = await fixture(t);
+  await execute(process.execPath, [resolve('bin/tokenpet.mjs'), 'setup'], { env, timeout: 20000 });
+  writeFileSync(join(vendor, 'codex.mjs'), `#!${process.execPath}
+process.stdin.setRawMode(true);
+const size = () => JSON.stringify([process.stdout.columns, process.stdout.rows]);
+process.stdout.on('resize', () => console.log('RESIZE ' + size()));
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', input => {
+  if (input === '\\x03') { process.stdin.pause(); process.exitCode = 17; console.log('EXIT'); }
+  else process.stdout.write(input);
+});
+setTimeout(() => process.exit(99), 12000).unref();
+console.log('READY ' + size());
+`);
+  const check = `import fcntl, os, pty, select, signal, struct, sys, termios, time
+pid, fd = pty.fork()
+if pid == 0:
+    fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 80, 800, 480))
+    os.execv(sys.argv[1], sys.argv[1:])
+pending = b''
+def wait_for(needle):
+    global pending
+    deadline = time.monotonic() + 5
+    while needle not in pending:
+        assert time.monotonic() < deadline, ('missing output', needle, pending)
+        if not select.select([fd], [], [], 0.1)[0]:
+            continue
+        data = os.read(fd, 65536)
+        assert data, ('unexpected EOF', needle, pending)
+        pending += data
+    pending = pending.split(needle, 1)[1]
+try:
+    wait_for(b'READY [80,24]')
+    for index, (columns, rows) in enumerate([(120, 32), (58, 18), (96, 40)]):
+        fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack('HHHH', rows, columns, columns * 10, rows * 20))
+        wait_for(('RESIZE [%d,%d]' % (columns, rows)).encode())
+        text = 'typing-%d 한국어' % index
+        os.write(fd, text.encode())
+        wait_for(text.encode())
+    os.write(fd, b'\\x03')
+    wait_for(b'EXIT')
+    _, status = os.waitpid(pid, 0)
+    assert os.waitstatus_to_exitcode(status) == 17, status
+    mode = termios.tcgetattr(fd)
+    assert mode[3] & termios.ICANON and mode[3] & termios.ECHO, 'terminal mode was not restored'
+    print('PTY resize, input, exit and terminal mode checks passed')
+finally:
+    os.close(fd)
+    try:
+        os.killpg(pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+`;
+  const { stdout } = await execute('python3', ['-c', check, join(native, 'codex')], {
+    env: { ...env, TERM_PROGRAM: 'WarpTerminal' }, timeout: 20000,
+  });
+  assert.match(stdout, /PTY resize, input, exit and terminal mode checks passed/);
+});
+
 test('setup asks before replacing commands and uninstall cleans the folders it recorded from another shell', { skip: !unix }, async t => {
   const { dir, native, vendor, log, env } = await fixture(t);
   // CLI mock that remembers MCP entries and the Codex pet per config folder.
