@@ -48,7 +48,7 @@ async function writeCodexPet(executable: string, pet: string | null, env = proce
         } else if (message.result?.status === 'ok') resolve();
         else reject(new Error('다른 Codex 설정이 TokenPet 펫 선택을 덮어쓰고 있어요.'));
       });
-      send({ id: 1, method: 'initialize', params: { clientInfo: { name: 'tokenpet', version: '1.1.2' } } });
+      send({ id: 1, method: 'initialize', params: { clientInfo: { name: 'tokenpet', version: '1.2.0' } } });
     });
   } finally { clearTimeout(timer); lines.close(); child.stdin.end(); child.kill(); }
 }
