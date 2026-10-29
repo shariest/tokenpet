@@ -10,7 +10,7 @@ function $<T extends HTMLElement = HTMLElement>(selector: string): T {
 const tabs = ['home', 'dex', 'hatch', 'connect', 'ranking'];
 let state: ServerState | null = null, shared: Collection | undefined, directory: Directory | undefined;
 let identity: Partial<Identity> = {}, tokens: ApiToken[] = [], ranking: Ranking | null = null;
-let rankingType: Ranking['type'] = 'level', rankingPage = 1, rankingRequest = 0, loadRequest = 0;
+let rankingType: Ranking['type'] = 'level', rankingPage = 1, rankingRange: { from: string; to: string } | null = null, rankingRequest = 0, loadRequest = 0;
 let tab = tabs.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home', filter = 'all', search = '', page = 0, busy = false;
 let toastTimer: number | undefined;
 const fmt = (n: number) => Number(n).toLocaleString('ko-KR');
@@ -66,14 +66,20 @@ function issueTokenDialog() {
   openModal(`<p class="eyebrow">CLI ACCESS TOKEN</p><h2>${tokens.length ? '새 토큰으로 교체할까요?' : '터미널로 이어지는 작은 열쇠.'}</h2><p>${tokens.length ? '재발급이 완료되면 기존 토큰은 즉시 폐기돼요. 연결해 둔 모든 CLI에서 새 토큰을 입력해 주세요.' : '발급한 토큰은 이 화면에서 한 번만 보여드려요.'}</p><form id="token-form"><label for="token-days">유효 기간</label><select class="form-input" id="token-days"><option value="30">30일</option><option value="90" selected>90일</option><option value="365">365일</option></select><p class="form-error" role="alert"></p><button class="primary">${tokens.length ? '기존 토큰 폐기하고 재발급' : '토큰 발급'}</button></form>`);
 }
 function rankingView() {
-  const intro = rankingType === 'level' ? '가장 많이 자란 한 마리의 레벨로 순위를 정해요.' : '서로 다른 펫의 종류 수로 순위를 정해요. 중복 보유는 합산하지 않아요.';
-  const row = (entry: RankingEntry, featured = false) => `<${featured ? 'div' : 'li'} class="ranking-row ${entry.mine ? 'is-mine' : ''}"><span class="rank-number">${String(entry.rank).padStart(2, '0')}</span><div class="rank-pet">${sprite(entry.pet)}</div><div class="rank-person"><b>${esc(entry.nickname)} ${entry.mine ? '<span class="tag">나</span>' : ''}</b><small>${esc(entry.pet.name)} · ${tier(entry.pet.tier).name}</small></div><div class="rank-score"><b>${rankingType === 'level' ? `Lv.${entry.pet.level}` : `${entry.speciesCount}종`}</b><small>${rankingType === 'level' ? `${fmt(entry.pet.xp)} XP` : `${fmt(entry.copies)}마리 보유`}</small></div></${featured ? 'div' : 'li'}>`;
-  return heading('GROW TOGETHER, ONE DAY AT A TIME', '함께 자란 기록', '각자의 작업실에서 쌓아 올린 작은 성장을 만나보세요.') + `<div class="ranking-tabs" aria-label="랭킹 기준"><button class="filter ${rankingType === 'level' ? 'selected' : ''}" data-ranking="level" aria-pressed="${rankingType === 'level'}">성장 랭킹 <small>최고 레벨 펫</small></button><button class="filter ${rankingType === 'collection' ? 'selected' : ''}" data-ranking="collection" aria-pressed="${rankingType === 'collection'}">수집 랭킹 <small>서로 다른 종류</small></button></div><p class="ranking-description">${intro}</p>${!ranking ? '<div class="loading" role="status">친구들의 기록을 모으고 있어요…</div>' : `${ranking.me ? `<section class="my-rank"><p class="eyebrow">MY LITTLE MILESTONE</p>${row(ranking.me, true)}</section>` : ''}<section class="panel ranking-board"><div class="panel-head"><h2>${rankingType === 'level' ? '오늘의 성장 기록' : '오늘의 수집 기록'}</h2><small>${fmt(ranking.total)}명의 수집가</small></div>${ranking.entries.length ? `<ol class="ranking-list" start="${(ranking.page - 1) * ranking.pageSize + 1}">${ranking.entries.map(e => row(e)).join('')}</ol>` : '<div class="empty"><h3>첫 번째 기록의 주인공이 되어 주세요.</h3><p>가입한 친구들의 기록이 여기에 모여요.</p><button class="primary" data-auth="signup">작업실 만들기</button></div>'}</section><div class="toolbar"><button class="secondary" id="rank-prev" ${ranking.page <= 1 ? 'disabled' : ''}>← 이전</button><span>${ranking.page} / ${ranking.pages} 페이지</span><button class="secondary" id="rank-next" ${ranking.page >= ranking.pages ? 'disabled' : ''}>다음 →</button></div>`}<p class="ranking-note">성장: 레벨 → 경험치 → 종류 수 순. 수집: 종류 수 → 최고 경험치 순. 동률은 가입 순으로 정해요.<br>CLI에서 전송한 사용량이 반영되는 커뮤니티 기록입니다. 로컬 전용 작업실은 포함하지 않아요.</p>`;
+  const period = rankingType === 'tokens' ? rankingRange : null;
+  const intro = rankingType === 'level' ? '가장 많이 자란 한 마리의 레벨로 순위를 정해요.' : rankingType === 'collection' ? '서로 다른 펫의 종류 수로 순위를 정해요. 중복 보유는 합산하지 않아요.' : 'CLI에서 수집한 토큰의 누적 획득량으로 순위를 정해요. 기간을 정하면 그 기간에 획득한 토큰만 합산해요.';
+  const score = (entry: RankingEntry) => rankingType === 'level' ? `<b>Lv.${entry.pet.level}</b><small>${fmt(entry.pet.xp)} XP</small>` : rankingType === 'collection' ? `<b>${entry.speciesCount}종</b><small>${fmt(entry.copies)}마리 보유</small>` : `<b>${fmt(entry.tokens)}</b><small>${period ? '기간 내 획득 토큰' : '누적 획득 토큰'}</small>`;
+  const row = (entry: RankingEntry, featured = false) => `<${featured ? 'div' : 'li'} class="ranking-row ${entry.mine ? 'is-mine' : ''}"><span class="rank-number">${String(entry.rank).padStart(2, '0')}</span><div class="rank-pet">${sprite(entry.pet)}</div><div class="rank-person"><b>${esc(entry.nickname)} ${entry.mine ? '<span class="tag">나</span>' : ''}</b><small>${esc(entry.pet.name)} · ${tier(entry.pet.tier).name}</small></div><div class="rank-score">${score(entry)}</div></${featured ? 'div' : 'li'}>`;
+  const tabButton = (type: Ranking['type'], label: string, note: string) => `<button class="filter ${rankingType === type ? 'selected' : ''}" data-ranking="${type}" aria-pressed="${rankingType === type}">${label} <small>${note}</small></button>`;
+  const rangeForm = rankingType === 'tokens' ? `<form class="toolbar ranking-range" id="rank-range" aria-label="집계 기간"><label>시작일 <input type="date" name="from" value="${esc(rankingRange?.from ?? '')}" required></label><span>~</span><label>종료일 <input type="date" name="to" value="${esc(rankingRange?.to ?? '')}" required></label><button class="secondary" type="submit">기간 집계</button>${rankingRange ? '<button class="text-button" type="button" id="rank-range-clear">전체 기간 보기</button>' : ''}</form>` : '';
+  const title = rankingType === 'level' ? '오늘의 성장 기록' : rankingType === 'collection' ? '오늘의 수집 기록' : period ? `${esc(period.from)} ~ ${esc(period.to)} 토큰 기록` : '누적 토큰 기록';
+  return heading('GROW TOGETHER, ONE DAY AT A TIME', '함께 자란 기록', '각자의 작업실에서 쌓아 올린 작은 성장을 만나보세요.') + `<div class="ranking-tabs" aria-label="랭킹 기준">${tabButton('level', '성장 랭킹', '최고 레벨 펫')}${tabButton('collection', '수집 랭킹', '서로 다른 종류')}${tabButton('tokens', '토큰 랭킹', '누적 획득량')}</div><p class="ranking-description">${intro}</p>${rangeForm}${!ranking ? '<div class="loading" role="status">친구들의 기록을 모으고 있어요…</div>' : `${ranking.me ? `<section class="my-rank"><p class="eyebrow">MY LITTLE MILESTONE</p>${row(ranking.me, true)}</section>` : ''}<section class="panel ranking-board"><div class="panel-head"><h2>${title}</h2><small>${fmt(ranking.total)}명의 수집가</small></div>${ranking.entries.length ? `<ol class="ranking-list" start="${(ranking.page - 1) * ranking.pageSize + 1}">${ranking.entries.map(e => row(e)).join('')}</ol>` : '<div class="empty"><h3>첫 번째 기록의 주인공이 되어 주세요.</h3><p>가입한 친구들의 기록이 여기에 모여요.</p><button class="primary" data-auth="signup">작업실 만들기</button></div>'}</section><div class="toolbar"><button class="secondary" id="rank-prev" ${ranking.page <= 1 ? 'disabled' : ''}>← 이전</button><span>${ranking.page} / ${ranking.pages} 페이지</span><button class="secondary" id="rank-next" ${ranking.page >= ranking.pages ? 'disabled' : ''}>다음 →</button></div>`}<p class="ranking-note">성장: 레벨 → 경험치 → 종류 수 순. 수집: 종류 수 → 최고 경험치 순. 토큰: 획득량 → 최고 경험치 순. 동률은 가입 순으로 정해요.<br>기간 집계는 한국 시간으로 시작일 00:00:00부터 종료일 23:59:59.999까지 획득한 토큰을 더해요.<br>CLI에서 전송한 사용량이 반영되는 커뮤니티 기록입니다. 로컬 전용 작업실은 포함하지 않아요.</p>`;
 }
 async function loadRanking() {
   const current = ++rankingRequest;
   ranking = null; render();
-  try { const result = await api(`/api/rankings?type=${rankingType}&page=${rankingPage}`); if (current === rankingRequest) { ranking = result; render(); } }
+  const period = rankingType === 'tokens' && rankingRange ? `&from=${rankingRange.from}&to=${rankingRange.to}` : '';
+  try { const result = await api(`/api/rankings?type=${rankingType}&page=${rankingPage}${period}`); if (current === rankingRequest) { ranking = result; render(); } }
   catch (error) { if (current === rankingRequest) { $('#main').innerHTML = `<div class="empty">${esc((error instanceof Error ? error.message : String(error)))}<p><button class="secondary" id="retry-ranking">다시 불러오기</button></p></div>`; } }
 }
 function gachaPanel() {
@@ -198,8 +204,9 @@ document.addEventListener('click', async event => {
   if (target.id === 'prev' || target.id === 'next') { page = Math.max(0, page + (target.id === 'next' ? 1 : -1)); render(); return; }
   if (target.id === 'issue-token') { issueTokenDialog(); return; }
   if (target.dataset.revoke) { openModal(`<h2>연결 토큰을 폐기할까요?</h2><p>연결된 모든 CLI에서 이 토큰을 더 이상 사용할 수 없어요. 게임 기록은 그대로 남습니다.</p><button class="primary" data-confirm-revoke="${target.dataset.revoke}">토큰 폐기</button>`); return; }
-  if (target.dataset.ranking || ['rank-prev', 'rank-next', 'retry-ranking'].includes(target.id)) {
+  if (target.dataset.ranking || ['rank-prev', 'rank-next', 'retry-ranking', 'rank-range-clear'].includes(target.id)) {
     if (target.dataset.ranking) { rankingType = target.dataset.ranking as Ranking['type']; rankingPage = 1; }
+    else if (target.id === 'rank-range-clear') { rankingRange = null; rankingPage = 1; }
     else if (target.id !== 'retry-ranking') rankingPage = Math.max(1, rankingPage + (target.id === 'rank-next' ? 1 : -1));
     await loadRanking(); return;
   }
@@ -245,6 +252,11 @@ document.addEventListener('submit', async event => {
   const errorArea = form.querySelector('.form-error'); if (errorArea) errorArea.textContent = '';
   try {
     if (form.id === 'profile-form') { await mutate('/api/profile', { name: $<HTMLInputElement>('#profile-name').value }); closeModal(); toast('이름을 저장했어요.'); }
+    if (form.id === 'rank-range') {
+      const from = $<HTMLInputElement>('#rank-range [name="from"]').value, to = $<HTMLInputElement>('#rank-range [name="to"]').value;
+      if (from > to) throw new Error('시작일은 종료일보다 늦을 수 없어요.');
+      rankingRange = { from, to }; rankingPage = 1; await loadRanking();
+    }
     if (form.id === 'auth-form') {
       ++loadRequest;
       const mode = form.dataset.mode;

@@ -57,8 +57,8 @@ export interface User { id: number; username: string; nickname: string; created:
 export interface Identity { user: User | null; authenticated: boolean; local: boolean }
 export interface ApiToken { id: string; label: string; prefix: string; created: number; expires: number; last_used: number | null }
 export interface Directory { catalog: Species[]; tiers: Tier[]; rules: GameState['rules']; pets: CollectionPet[]; total: number }
-export interface RankingEntry { rank: number; nickname: string; speciesCount: number; copies: number; mine: boolean; pet: Species & { xp: number; level: number } }
-export interface Ranking { type: 'level' | 'collection'; page: number; pageSize: number; total: number; pages: number; entries: RankingEntry[]; me: RankingEntry | null }
+export interface RankingEntry { rank: number; nickname: string; speciesCount: number; copies: number; tokens: number; mine: boolean; pet: Species & { xp: number; level: number } }
+export interface Ranking { type: 'level' | 'collection' | 'tokens'; page: number; pageSize: number; total: number; pages: number; entries: RankingEntry[]; me: RankingEntry | null }
 
 export interface ApiResponses {
   '/api/state': ServerState;

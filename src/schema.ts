@@ -21,6 +21,8 @@ export const tables = {
   reward_progress: `id INTEGER PRIMARY KEY REFERENCES player(id), coin_tokens INTEGER NOT NULL, xp_tokens INTEGER NOT NULL`,
   checkins: `day TEXT NOT NULL, streak INTEGER NOT NULL, coins INTEGER NOT NULL, created INTEGER NOT NULL,
     player_id INTEGER NOT NULL DEFAULT 1 REFERENCES player(id), PRIMARY KEY(player_id,day)`,
+  daily_tokens: `day TEXT NOT NULL, tokens INTEGER NOT NULL DEFAULT 0,
+    player_id INTEGER NOT NULL DEFAULT 1 REFERENCES player(id), PRIMARY KEY(player_id,day)`,
   accounts: `player_id INTEGER PRIMARY KEY REFERENCES player(id), username TEXT NOT NULL UNIQUE,
     nickname TEXT NOT NULL, password TEXT NOT NULL, created INTEGER NOT NULL`,
   sessions: `hash TEXT PRIMARY KEY, player_id INTEGER NOT NULL REFERENCES player(id), created INTEGER NOT NULL, expires INTEGER NOT NULL`,
@@ -34,6 +36,7 @@ const indexes = [
   'CREATE UNIQUE INDEX IF NOT EXISTS player_share ON player(share)',
   'CREATE INDEX IF NOT EXISTS sessions_player ON sessions(player_id,created)',
   'CREATE UNIQUE INDEX IF NOT EXISTS tokens_player ON api_tokens(player_id)',
+  'CREATE INDEX IF NOT EXISTS daily_tokens_day ON daily_tokens(day)',
 ];
 
 export async function initializeExternalDatabase(db: Database) {
