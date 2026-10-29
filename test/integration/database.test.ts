@@ -104,6 +104,9 @@ for (const driver of ['postgres', 'mariadb']) {
     const ranked = await call(b, '/api/rankings?type=collection', { cookie: bob.cookie });
     assert.equal(ranked.status, 200); assert.equal(ranked.data.total, 2); assert.equal(ranked.data.entries[0].speciesCount, 2);
     assert.equal(ranked.data.me.rank, 2); assert.equal(typeof ranked.data.entries[0].copies, 'number');
+    const credited = await call(b, '/api/rankings?type=tokens&from=2000-01-01&to=2999-12-31', { cookie: bob.cookie });
+    assert.equal(credited.status, 200); assert.equal(credited.data.entries[0].tokens, (await member.player())!.tokens);
+    assert.equal(typeof credited.data.entries[0].tokens, 'number'); assert.equal(credited.data.me.tokens, 0);
     const shared = await call(a, '/api/share', { token, data: { enabled: true } });
     assert.equal((await call(b, `/api${shared.data.path}`)).data.name, name);
     await call(b, '/api/share', { token, data: { enabled: false } });

@@ -130,6 +130,10 @@ async page => {
   await page.locator('[data-ranking="collection"]').click();
   await page.locator('.my-rank').waitFor();
   check((await json('/api/rankings?type=collection')).me.speciesCount === state.pets.length, 'collection ranking counts distinct species');
+  await page.locator('[data-ranking="tokens"]').click();
+  await page.locator('.my-rank').waitFor();
+  check((await json('/api/rankings?type=tokens')).me.tokens === state.player.tokens, 'token ranking reports lifetime tokens');
+  check((await json('/api/rankings?type=tokens&from=2000-01-01&to=2999-12-31')).me !== null, 'token ranking accepts a period');
   await noOverflow(page);
 
   await page.locator('.nav[data-tab="connect"]').click();
@@ -183,6 +187,6 @@ async page => {
   } finally { await personal.close(); }
   check(errors.length === 0, `browser exceptions: ${errors.join('; ')}`);
   return { status: 'passed', account: username, checks: ['public catalog', 'signup', 'attendance', 'care', 'sleep/wake',
-    'odds refresh', 'gacha', 'owned catalog', 'pet preview', 'sharing privacy', 'both rankings',
+    'odds refresh', 'gacha', 'owned catalog', 'pet preview', 'sharing privacy', 'three rankings',
     'single token rotation/revocation', 'mobile layout', 'login/logout', 'personal mode', 'no browser exceptions'] };
 }

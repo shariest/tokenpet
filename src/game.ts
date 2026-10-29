@@ -10,6 +10,8 @@ export class GameError extends Error {
 }
 function requireValue(ok: unknown, message: string, status = 400): asserts ok { if (!ok) throw new GameError(message, status); }
 const clamp = (n: number) => Math.max(0, Math.min(100, n));
+// Attendance and token history share the Korean calendar day.
+const localDay = (time: number) => new Date(time + 9 * 3_600_000).toISOString().slice(0, 10);
 
 export class Game {
   private constructor(public db: Database, public now = Date.now, public random = randomInt, public playerId = 1, private ownsDatabase = false) {}
@@ -83,9 +85,7 @@ export class Game {
     });
   }
   async attendance() {
-    const localTime = this.now() + 9 * 3_600_000;
-    const day = new Date(localTime).toISOString().slice(0, 10);
-    const yesterday = new Date(localTime - 86_400_000).toISOString().slice(0, 10);
+    const now = this.now(), day = localDay(now), yesterday = localDay(now - 86_400_000);
     const last = await this.db.prepare('SELECT * FROM checkins WHERE player_id=? ORDER BY day DESC LIMIT 1').get(this.playerId) as { day: string; streak: number; coins: number } | undefined;
     // A server clock rollback must not make an earlier day claimable again.
     const claimed = !!last && last.day >= day;
@@ -124,6 +124,8 @@ export class Game {
       }
       requireValue(Number.isSafeInteger(player.tokens + delta), '누적 사용량 한도를 초과했어요.');
       if (!delta) return { creditedTokens: 0, creditedCoins: 0, creditedXp: 0 };
+      await this.db.prepare(`INSERT INTO daily_tokens(day,tokens,player_id) VALUES(?,?,?)
+        ${this.db.upsert('player_id,day', 'tokens=daily_tokens.tokens+excluded.tokens')}`).run(localDay(this.now()), delta, this.playerId);
       const progress = await this.db.prepare('SELECT * FROM reward_progress WHERE id=?').get(this.playerId) as { coin_tokens: number; xp_tokens: number };
       const coinTokens = progress.coin_tokens + delta, xpTokens = progress.xp_tokens + delta;
       const coins = Math.floor(coinTokens / RULES.tokensPerCoin);

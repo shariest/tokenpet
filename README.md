@@ -66,6 +66,8 @@ Claude Code와 Codex CLI에서 함께 키우는 픽셀 펫. **360종**, 5개 등
 
 ![수집 랭킹 — 서로 다른 펫 종류 수와 전체 보유 수량](docs/screenshots/rankings-collection.png)
 
+**토큰 랭킹**은 CLI에서 수집한 토큰의 누적 획득량으로 정합니다. 시작일과 종료일을 정하면 한국 시간으로 시작일 00:00:00부터 종료일 23:59:59.999까지 획득한 토큰만 합산합니다.
+
 </details>
 
 <details>
@@ -159,7 +161,7 @@ npm run build           # 소스 변경 후 다시 빌드
 npm install --global .  # 현재 소스로 자동 연결 설치 (tokenpet 명령)
 ```
 
-현재 정식 버전은 [`v1.1.2`](https://github.com/shariest/tokenpet/releases/tag/v1.1.2)입니다. 설치 명령은 `main`의 설치 프로그램을 사용하며, 프로그램 소스는 `v1.1.2` 태그로 고정합니다. 개발 브랜치는 [`develop`](https://github.com/shariest/tokenpet/tree/develop)이며, 검증한 개발 내용을 PR로 [`main`](https://github.com/shariest/tokenpet/tree/main)에 병합합니다. npm 레지스트리에는 배포하지 않았습니다.
+현재 정식 버전은 [`v1.2.0`](https://github.com/shariest/tokenpet/releases/tag/v1.2.0)입니다. 설치 명령은 `main`의 설치 프로그램을 사용하며, 프로그램 소스는 `v1.2.0` 태그로 고정합니다. 개발 브랜치는 [`develop`](https://github.com/shariest/tokenpet/tree/develop)이며, 검증한 개발 내용을 PR로 [`main`](https://github.com/shariest/tokenpet/tree/main)에 병합합니다. npm 레지스트리에는 배포하지 않았습니다.
 
 ## CLI 화면 안의 펫
 
@@ -394,9 +396,10 @@ Claude의 반복 메시지/블록은 메시지 ID별 최고 사용량으로 합�
 - **친구 도감:** 비로그인 상태에서도 360종의 실제 모습·등급·검색·페이지 탐색·확대 보기를 이용합니다. 로그인하면 **내가 보유한 친구** 필터와 펫 선택이 열립니다.
 - **성장 랭킹:** 회원이 보유한 펫 중 최고 레벨 한 마리로 비교합니다. 레벨은 XP에서 계산하며 동률은 XP → 종류 수 → 가입 순입니다.
 - **수집 랭킹:** 서로 다른 펫의 종류 수로 비교합니다. 중복 수량은 보조 정보로만 표시하며 동률은 최고 XP → 가입 순입니다.
+- **토큰 랭킹:** CLI에서 수집한 토큰의 누적 획득량으로 비교하며 동률은 최고 XP → 가입 순입니다. 시작일·종료일을 정하면 한국 시간 기준 그 기간에 획득한 토큰만 합산합니다. 기간별 기록은 일 단위로 저장하며 이 기능을 추가한 뒤의 획득량부터 쌓입니다.
 - **내 순위:** 로그인하면 현재 페이지와 상관없이 별도로 표시합니다. 랭킹은 20명씩 조회합니다.
 
-랭킹에는 가입한 회원의 닉네임·대표 펫·레벨/XP·수집 종류 수·총 보유 수량만 공개합니다. 아이디·코인·사용량·활동 기록·토큰은 공개하지 않습니다. 공유 도감은 랭킹과 별도로 켜고 끌 수 있습니다. 로컬 전용 작업실은 랭킹에 포함하지 않습니다.
+랭킹에는 가입한 회원의 닉네임·대표 펫·레벨/XP·수집 종류 수·총 보유 수량·획득 토큰 수만 공개합니다. 아이디·코인·활동 기록·연결 토큰은 공개하지 않습니다. 공유 도감은 랭킹과 별도로 켜고 끌 수 있습니다. 로컬 전용 작업실은 랭킹에 포함하지 않습니다.
 
 이메일과 외부 인증을 사용하지 않으므로 **비밀번호 찾기는 제공하지 않습니다.** 비밀번호 관리자에 저장해 주세요. 회원 작업실과 로컬 작업실은 독립적이며 가입 시 자동 병합하지 않습니다.
 
@@ -418,7 +421,7 @@ DB 파일은 기본적으로 `~/.tokenpet/game.sqlite`이며 Node의 `node:sqlit
 | `POST /api/tokens` | `{ "days": 90 }`, 발급/재발급 시 기존 토큰 자동 폐기 |
 | `DELETE /api/tokens/:id` | 내 토큰 폐기 |
 | `GET /api/catalog` | 전체 도감, `?owned=true`는 인증 필수, `tier`·`q` 검색 지원 |
-| `GET /api/rankings` | `?type=level` 또는 `collection`, `page`는 1부터 |
+| `GET /api/rankings` | `?type=level`, `collection` 또는 `tokens`, `page`는 1부터. `tokens`는 `from`·`to`(YYYY-MM-DD)로 기간 집계 |
 | `GET /api/state` | 펫·지갑·도감·연동 상태 |
 | `POST /api/care` | `{ "action": "feed" }` 등 |
 | `POST /api/gacha` | `{ "count": 25 }` — 1 이상의 정수, 전체 비용 부족 시 409 및 변경 없음 |

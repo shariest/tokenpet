@@ -187,10 +187,24 @@ test('public catalog and rankings count distinct species, hide private data and 
   assert.equal(collection.data.entries[0].nickname, 'Bob'); assert.equal(collection.data.entries[0].speciesCount, 2);
   assert.equal(collection.data.entries[1].speciesCount, 1); assert.equal(collection.data.entries[1].copies, 100);
   const exposed = JSON.stringify(collection.data);
-  for (const privateField of ['private_alice', 'password', 'coins', 'tokens', 'created', 'player_id']) assert.ok(!exposed.includes(privateField));
+  for (const privateField of ['private_alice', 'password', 'coins', 'created', 'player_id']) assert.ok(!exposed.includes(privateField));
   assert.equal((await call('/api/rankings?page=0')).status, 400);
   assert.equal((await call('/api/rankings?page=2')).data.entries.length, 0);
   assert.equal((await call('/api/rankings?type=invalid')).status, 400);
+  const usage = (key: string, input: number) => ({ records: [{ source: 'claude', key: key.repeat(64), input, output: 0, baseline: false }] });
+  game.now = () => Date.UTC(2026, 9, 31, 14, 59, 59, 999); // 2026-10-31 23:59:59.999 KST
+  assert.equal((await call('/api/usage', usage('b', 1500), bob.cookie)).data.creditedTokens, 1500);
+  game.now = () => Date.UTC(2026, 9, 31, 15); // 2026-11-01 00:00:00.000 KST
+  assert.equal((await call('/api/usage', usage('c', 5000), alice.cookie)).data.creditedTokens, 5000);
+  const lifetime = await call('/api/rankings?type=tokens', undefined, bob.cookie);
+  assert.deepEqual(lifetime.data.entries.map((row: { nickname: string; tokens: number }) => [row.nickname, row.tokens]), [['Alice', 5000], ['Bob', 1500]]);
+  assert.equal(lifetime.data.me.rank, 2);
+  const october = await call('/api/rankings?type=tokens&from=2026-10-01&to=2026-10-31', undefined, alice.cookie);
+  assert.deepEqual(october.data.entries.map((row: { nickname: string; tokens: number }) => [row.nickname, row.tokens]), [['Bob', 1500], ['Alice', 0]], 'a period ends at 23:59:59.999 on its last day');
+  assert.equal(october.data.me.rank, 2); assert.equal(october.data.me.tokens, 0);
+  assert.equal((await call('/api/rankings?type=tokens&from=2026-11-01&to=2026-11-01')).data.entries[0].tokens, 5000);
+  for (const period of ['from=2026-10-01', 'to=2026-10-31', 'from=2026-10-02&to=2026-10-01', 'from=2026-02-30&to=2026-03-01', 'from=20261001&to=20261031'])
+    assert.equal((await call(`/api/rankings?type=tokens&${period}`)).status, 400, period);
   let last: Game | undefined;
   await game.transaction(async () => {
     for (let i = 0; i < 20; i++) {
